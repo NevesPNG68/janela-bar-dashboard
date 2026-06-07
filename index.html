@@ -25,6 +25,7 @@
   .upload-zone .icon{font-size:3rem;margin-bottom:1rem}
   .upload-zone p{color:var(--muted);font-size:.88rem;margin-top:.5rem}
   .upload-zone strong{color:var(--text);font-size:1.05rem}
+  #file-input{display:none}
   .upload-btn{margin-top:1rem;background:var(--accent);color:#0a0a0f;border:none;border-radius:8px;padding:.75rem 2rem;font-family:var(--font-head);font-size:1.1rem;letter-spacing:.08em;cursor:pointer;transition:opacity .2s}
   .upload-btn:hover{opacity:.85}
   .upload-hint{font-size:.75rem;color:var(--muted);margin-top:.5rem}
@@ -249,13 +250,16 @@
 <div id="upload-screen">
   <div class="upload-logo">JANELA <span>BAR</span></div>
   <div class="upload-sub">Dashboard de Vendas &middot; Paran&aacute;gu&aacute;</div>
-  <div class="upload-zone" id="status-zone" style="cursor:default">
+  <div class="upload-zone" id="drop-zone">
     <div class="icon">&#127866;</div>
-    <strong>Carregando base hospedada</strong>
-    <p id="hosted-status">A base <b>Por_venda_2026.xlsm</b> será lida automaticamente.</p>
-    <button class="upload-btn" type="button" onclick="loadHostedExcel()">TENTAR NOVAMENTE</button>
-    <p class="upload-hint">Para atualizar os dados, substitua a planilha hospedada mantendo exatamente o mesmo nome.</p>
+    <strong>Carregue sua planilha</strong>
+    <p>Arraste o arquivo <b>Por venda_2026.xlsm</b> aqui</p>
+    <p>ou clique para selecionar</p>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">SELECIONAR ARQUIVO</button>
+    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel()">CARREGAR BASE HOSPEDADA</button>
+    <p class="upload-hint" id="hosted-status">A base hospedada será carregada automaticamente quando o HTML estiver publicado.</p>
   </div>
+  <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
 </div>
 
 <!-- LOADING SCREEN -->
@@ -468,8 +472,13 @@
 
 // ── CONFIGURAÇÃO DA BASE HOSPEDADA ──
 // Para atualizar os dados do dashboard publicado, substitua no servidor apenas o arquivo abaixo,
-// mantendo este mesmo nome. O HTML irá buscar a planilha automaticamente no mesmo diretório.
-const HOSTED_EXCEL_URL = "./Por_venda_2026.xlsm";
+// Teste Dropbox: o dashboard tentará carregar a planilha pelo link compartilhado.
+// Ordem: link direto do Dropboxusercontent, depois raw=1, depois dl=1.
+const HOSTED_EXCEL_URLS = [
+  "https://dl.dropboxusercontent.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&st=yaw1gyip&dl=1",
+  "https://www.dropbox.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&st=yaw1gyip&raw=1",
+  "https://www.dropbox.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&st=yaw1gyip&dl=1"
+];
 const AUTO_LOAD_HOSTED_EXCEL = true;
 
 let allData=[], filteredData=[], charts={};
@@ -2305,30 +2314,43 @@ function auditarProdutos(){
 async function loadHostedExcel(){
   const status = document.getElementById("hosted-status");
   const setStatus = msg => { if(status) status.textContent = msg; };
+  let lastErr = null;
   try{
     document.getElementById("dashboard").style.display="none";
     document.getElementById("upload-screen").style.display="none";
     document.getElementById("loading-screen").style.display="flex";
-    setProgress(5, "Buscando base hospedada...");
-    setStatus("Buscando base hospedada...");
-    const resp = await fetch(HOSTED_EXCEL_URL, {cache:"no-store"});
-    if(!resp.ok){
-      throw new Error("Não foi possível acessar a planilha hospedada (HTTP " + resp.status + ").");
+    setProgress(5, "Buscando base no Dropbox...");
+    setStatus("Buscando base no Dropbox...");
+
+    for(let i=0;i<HOSTED_EXCEL_URLS.length;i++){
+      const url = HOSTED_EXCEL_URLS[i];
+      try{
+        setProgress(8 + i*4, "Tentando link Dropbox " + (i+1) + "...");
+        const resp = await fetch(url, {cache:"no-store", redirect:"follow"});
+        if(!resp.ok){
+          throw new Error("HTTP " + resp.status);
+        }
+        const blob = await resp.blob();
+        if(!blob || blob.size < 1000){
+          throw new Error("arquivo vazio ou inválido");
+        }
+        const file = new File([blob], "Por_venda_2026.xlsm", {
+          type:"application/vnd.ms-excel.sheet.macroEnabled.12"
+        });
+        load(file);
+        return;
+      }catch(errLink){
+        lastErr = errLink;
+        console.warn("Falha no link Dropbox " + (i+1) + ":", errLink);
+      }
     }
-    const blob = await resp.blob();
-    if(!blob || blob.size < 1000){
-      throw new Error("A planilha hospedada parece vazia ou inválida.");
-    }
-    const file = new File([blob], "Por_venda_2026.xlsm", {
-      type:"application/vnd.ms-excel.sheet.macroEnabled.12"
-    });
-    load(file);
+    throw lastErr || new Error("Nenhum link do Dropbox funcionou.");
   }catch(err){
-    console.warn("Falha ao carregar base hospedada:", err);
+    console.warn("Falha ao carregar base Dropbox:", err);
     document.getElementById("loading-screen").style.display="none";
     document.getElementById("dashboard").style.display="none";
     document.getElementById("upload-screen").style.display="flex";
-    setStatus("Não consegui carregar a base hospedada. Verifique se Por_venda_2026.xlsm está na mesma pasta do HTML e se o site foi aberto por HTTPS/HTTP.");
+    setStatus("Não consegui carregar a base pelo Dropbox. Se isso acontecer publicado no GitHub Pages, provavelmente é bloqueio de CORS/redirecionamento do Dropbox.");
   }
 }
 
@@ -2342,7 +2364,7 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("dashboard").style.display="none";
     document.getElementById("upload-screen").style.display="flex";
     const status = document.getElementById("hosted-status");
-    if(status) status.innerHTML = "Para carregar automaticamente, publique o HTML em HTTPS/HTTP junto com <b>Por_venda_2026.xlsm</b>. Abrir direto no computador como file:// costuma bloquear a leitura automática.";
+    if(status) status.innerHTML = "Para testar corretamente, publique este HTML no GitHub Pages. Abrir direto no computador como file:// pode bloquear o carregamento automático.";
   }
 });
 
