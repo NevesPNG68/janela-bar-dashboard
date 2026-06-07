@@ -243,6 +243,26 @@
   .audit-box:active::after,.audit-result-card:active::after,.audit-card:active::after,.audit-analytic-card:active::after,
   .fin-zone:active::after{opacity:1}
 
+
+  /* ── QUADROS COMPARATIVOS MÊS A MÊS ── */
+  .evo-table-wrap{overflow-x:auto;padding:.2rem 0 .4rem}
+  .evo-table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px;font-size:.78rem}
+  .evo-table th{position:sticky;top:0;background:#1f1f2e;color:#787898;text-transform:uppercase;letter-spacing:.11em;font-size:.62rem;font-weight:800;padding:.7rem .75rem;border-bottom:1px solid var(--border);white-space:nowrap;text-align:right}
+  .evo-table th:first-child,.evo-table td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:#18181f;border-right:1px solid var(--border)}
+  .evo-table td{padding:.72rem .75rem;border-bottom:1px solid #1f1f2e;text-align:right;white-space:nowrap;vertical-align:middle}
+  .evo-table tr:hover td{background:#202030}
+  .evo-table tr:hover td:first-child{background:#202030}
+  .metric-name{display:flex;align-items:center;gap:.55rem;font-weight:800;color:var(--text);letter-spacing:.02em}
+  .metric-dot{width:9px;height:9px;border-radius:50%;background:var(--metric-color);box-shadow:0 0 12px var(--metric-color)}
+  .metric-pill{display:inline-flex;align-items:center;gap:.45rem;border:1px solid color-mix(in srgb,var(--metric-color) 55%,transparent);background:color-mix(in srgb,var(--metric-color) 16%,transparent);color:var(--metric-color);border-radius:999px;padding:.18rem .55rem;font-size:.66rem;text-transform:uppercase;letter-spacing:.08em}
+  .cell-val{font-weight:850;color:var(--text);font-variant-numeric:tabular-nums}
+  .mom{margin-top:.2rem;font-size:.68rem;font-weight:900;letter-spacing:.03em;display:flex;justify-content:flex-end;align-items:center;gap:.25rem;font-variant-numeric:tabular-nums}
+  .mom.good{color:#b8ff00;text-shadow:0 0 9px rgba(184,255,0,.38)}
+  .mom.bad{color:#ff3c6e;text-shadow:0 0 9px rgba(255,60,110,.38)}
+  .mom.neutral{color:#686880;text-shadow:none;font-weight:700}
+  .evo-note{font-size:.68rem;color:var(--muted);margin:.35rem 0 .1rem;line-height:1.35}
+  @media(max-width:700px){.evo-table{min-width:680px}.evo-table th,.evo-table td{padding:.62rem .6rem}.metric-pill{font-size:.6rem}.cell-val{font-size:.74rem}}
+
 </style>
 </head>
 <body>
@@ -372,12 +392,12 @@
     <!-- EVOLUÇÃO DE CUSTOS -->
     <div class="section-title">Evolu&ccedil;&atilde;o de Custos <span class="tag">CUSTOS</span></div>
     <div style="margin-bottom:1.5rem">
-      <div class="chart-card"><h3>Custos por M&ecirc;s (Total, Fixo, Fixo/Vari&aacute;vel, Vari&aacute;vel)</h3><div class="chart-wrap" style="position:relative;height:280px"><canvas id="c-custos"></canvas></div></div>
+      <div class="chart-card"><h3>Quadro de Custos — valores e varia&ccedil;&atilde;o m&ecirc;s a m&ecirc;s</h3><div id="quadro-custos" class="evo-table-wrap"></div></div>
     </div>
 
     <div class="section-title">Indicadores de Performance <span class="tag">KPIs</span></div>
     <div style="margin-bottom:1.5rem">
-      <div class="chart-card"><h3>Lucratividade · %CMV · MKP · Margem de Contribui&ccedil;&atilde;o · Efici&ecirc;ncia Operacional</h3><div class="chart-wrap" style="position:relative;height:300px"><canvas id="c-kpi-linha"></canvas></div></div>
+      <div class="chart-card"><h3>Quadro de Indicadores — valores e varia&ccedil;&atilde;o m&ecirc;s a m&ecirc;s</h3><div id="quadro-kpi" class="evo-table-wrap"></div></div>
     </div>
 
     <!-- PROJEÇÃO DE RECEITA -->
@@ -1724,227 +1744,117 @@ function renderSemana(){
 }
 
 // TABLE
-function tipoGraficoPorQtdMeses(qtdMeses){
-  if(qtdMeses<=3) return "bar";
-  if(qtdMeses>12) return "bar";
-  return "line";
+function ordenarMatrizRows(rows){
+  return [...rows].sort((a,b)=>{
+    const parse=s=>{
+      const p=(s||"").split("/");
+      const MM={"jan":1,"fev":2,"mar":3,"abr":4,"mai":5,"jun":6,"jul":7,"ago":8,"set":9,"out":10,"nov":11,"dez":12};
+      const m=MM[(p[0]||"").toLowerCase().slice(0,3)]||0;
+      const yy=parseInt(p[1]||0);
+      const y=yy?yy+(yy<100?2000:0):0;
+      return y*100+m;
+    };
+    return parse(a.mes)-parse(b.mes);
+  });
 }
 
-function datasetAuto(label,data,color,dash=[],yAxis="y",tipo="line"){
-  const isBar = tipo === "bar";
-  return {
-    label, data,
-    type: tipo,
-    borderColor:color,
-    backgroundColor:isBar ? color+"88" : color+"18",
-    pointBackgroundColor:color,
-    pointBorderColor:"#0a0a0f",
-    pointRadius:isBar ? 0 : 5,
-    pointHoverRadius:isBar ? 0 : 8,
-    borderWidth:isBar ? 1.5 : 2.5,
-    tension:isBar ? 0 : 0.35,
-    fill:false,
-    borderDash:isBar ? [] : dash,
-    yAxisID:yAxis,
-    borderRadius:isBar ? 5 : 0,
-    barPercentage:isBar ? 0.78 : undefined,
-    categoryPercentage:isBar ? 0.72 : undefined,
-  };
+function matrizRowsFiltradas(){
+  const ano=document.getElementById("f-ano").value;
+  const mesesSel=getMs("mes");
+  let rows=matrizData;
+  if(ano){
+    rows=rows.filter(r=>{
+      const p=(r.mes||"").toLowerCase().split("/");
+      const yy=parseInt(p[1]||0);
+      const y=yy?String(yy+(yy<100?2000:0)):"";
+      return y===ano;
+    });
+  }
+  if(mesesSel.length>0){
+    const normMes=s=>(s||"").trim().toLowerCase();
+    rows=rows.filter(r=>mesesSel.some(m=>normMes(m)===normMes(r.mes)));
+  }
+  return ordenarMatrizRows(rows);
+}
+
+function fmtPerc(v){return (Number(v||0)).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";}
+function fmtMult(v){return "×"+(Number(v||0)).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function momHtml(curr,prev,lowerBetter=false){
+  curr=Number(curr||0); prev=Number(prev||0);
+  if(!isFinite(curr)||!isFinite(prev)) return `<div class="mom neutral">—</div>`;
+  if(prev===0 && curr===0) return `<div class="mom neutral">—</div>`;
+  if(prev===0 && curr!==0) return `<div class="mom neutral">novo</div>`;
+  const delta=(curr-prev)/Math.abs(prev)*100;
+  if(Math.abs(delta)<0.05) return `<div class="mom neutral">→ 0,0%</div>`;
+  const up=delta>0;
+  const good=lowerBetter ? !up : up;
+  const cls=good?"good":"bad";
+  const arrow=up?"▲":"▼";
+  const sign=up?"+":"";
+  return `<div class="mom ${cls}"><span>${arrow}</span>${sign}${delta.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>`;
+}
+
+function renderQuadroMesAMes(targetId,rows,metrics,note){
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  if(!rows.length){
+    el.innerHTML=`<div style="color:var(--muted);font-size:.82rem;padding:1rem;text-align:center">Sem dados para o período selecionado.</div>`;
+    return;
+  }
+  const labels=rows.map(r=>(r.mes||"").toUpperCase());
+  const body=metrics.map(m=>{
+    const vals=rows.map(r=>Number(m.value(r)||0));
+    const tds=vals.map((v,i)=>`
+      <td>
+        <div class="cell-val">${m.fmt(v)}</div>
+        ${i===0?`<div class="mom neutral">base</div>`:momHtml(v,vals[i-1],!!m.lowerBetter)}
+      </td>`).join("");
+    return `<tr style="--metric-color:${m.color}">
+      <td>
+        <div class="metric-name"><span class="metric-dot"></span><span>${m.label}</span></div>
+        <div style="margin-top:.28rem"><span class="metric-pill">${m.tag||"indicador"}</span></div>
+      </td>${tds}
+    </tr>`;
+  }).join("");
+  el.innerHTML=`
+    <div class="evo-note">${note||"Variação calculada contra o mês imediatamente anterior da seleção."}</div>
+    <table class="evo-table">
+      <thead><tr><th>Indicador</th>${labels.map(l=>`<th>${l}</th>`).join("")}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
 }
 
 function renderCustos(){
-  const ctx=document.getElementById("c-custos");
-  if(!ctx)return;
-
-  // Filtra matrizData pelos mesmos filtros de Ano e Mês
-  const ano=document.getElementById("f-ano").value;
-  const mesesSel=getMs("mes");
-  let rows=matrizData;
-  if(ano){
-    rows=rows.filter(r=>{
-      const p=r.mes.toLowerCase().split("/");
-      const y=p[1]?String(parseInt(p[1])+(parseInt(p[1])<100?2000:0)):"";
-      return y===ano;
-    });
-  }
-  if(mesesSel.length>0){
-    const normMes=s=>s.trim().toLowerCase();
-    rows=rows.filter(r=>mesesSel.some(m=>normMes(m)===normMes(r.mes)));
-  }
-
-  // Ordena por mês cronologicamente
-  rows=[...rows].sort((a,b)=>{
-    const parse=s=>{
-      const p=s.split("/");
-      const MMAP={"jan":1,"fev":2,"mar":3,"abr":4,"mai":5,"jun":6,"jul":7,"ago":8,"set":9,"out":10,"nov":11,"dez":12};
-      const m=MMAP[p[0].toLowerCase()]||0;
-      const y=p[1]?parseInt(p[1])+(parseInt(p[1])<100?2000:0):0;
-      return y*100+m;
-    };
-    return parse(a.mes)-parse(b.mes);
-  });
-
-  const labels=rows.map(r=>r.mes.toUpperCase());
-  const tipoGrafico=tipoGraficoPorQtdMeses(labels.length);
-
-  // custoVariavel = custoGeral - totalFixo
-  const totalArr=rows.map(r=>r.custoGeral||0);
-  const fixoArr=rows.map(r=>r.custoFixo||0);
-  const fixoVarArr=rows.map(r=>r.custoFixoVar||0);
-  const varArr=rows.map(r=>Math.max(0,(r.custoGeral||0)-(r.totalFixo||0)));
-
-  if(charts["custos"])charts["custos"].destroy();
-  charts["custos"]=new Chart(ctx,{
-    type:tipoGrafico,
-    data:{
-      labels,
-      datasets:[
-        datasetAuto("Total",         totalArr,    "#ff3c6e",[],"y",tipoGrafico),
-        datasetAuto("Fixo",          fixoArr,     "#e8ff00",[],"y",tipoGrafico),
-        datasetAuto("Fixo/Variável", fixoVarArr,  "#7fff00",[6,3],"y",tipoGrafico),
-        datasetAuto("Total Fixo",    rows.map(r=>r.totalFixo||0), "#ff69b4",[4,2],"y",tipoGrafico),
-        datasetAuto("Variável",      varArr,      "#00e5ff",[3,3],"y",tipoGrafico)
-      ]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      interaction:{mode:"index",intersect:false},
-      plugins:{
-        legend:{
-          labels:{color:"#b0b0cc",font:{family:"DM Sans",size:11},boxWidth:14,padding:14,usePointStyle:true,pointStyleWidth:10}
-        },
-        tooltip:{
-          backgroundColor:"#18181f",
-          borderColor:"#26263a",
-          borderWidth:1,
-          titleColor:"#f0f0f8",
-          bodyColor:"#b0b0cc",
-          padding:10,
-          callbacks:{label:c=>" "+c.dataset.label+": "+R(c.raw)}
-        }
-      },
-      scales:{
-        x:{
-          ticks:{color:"#606080",font:{family:"DM Sans",size:10},autoSkip:labels.length>12,maxTicksLimit:12,maxRotation:labels.length>12?45:0},
-          grid:{color:"#1c1c28"}
-        },
-        y:{
-          ticks:{color:"#606080",font:{family:"DM Sans",size:10},callback:v=>RK(v)},
-          grid:{color:"#1c1c28"}
-        }
-      }
-    }
-  });
+  const rows=matrizRowsFiltradas();
+  const metrics=[
+    {label:"Custo Total",tag:"Total",color:"#ff3c6e",lowerBetter:true,fmt:R,value:r=>r.custoGeral||0},
+    {label:"Custo Fixo",tag:"Fixo",color:"#e8ff00",lowerBetter:true,fmt:R,value:r=>r.custoFixo||0},
+    {label:"Fixo/Variável",tag:"Misto",color:"#7fff00",lowerBetter:true,fmt:R,value:r=>r.custoFixoVar||0},
+    {label:"Total Fixo",tag:"Base fixa",color:"#ff69b4",lowerBetter:true,fmt:R,value:r=>r.totalFixo||0},
+    {label:"Variável",tag:"Variável",color:"#00e5ff",lowerBetter:true,fmt:R,value:r=>Math.max(0,(r.custoGeral||0)-(r.totalFixo||0))}
+  ];
+  renderQuadroMesAMes("quadro-custos",rows,metrics,"Nos custos, redução aparece em verde e aumento em vermelho, com a seta indicando se o valor subiu ou caiu contra o mês anterior.");
 }
 
 function renderKpiLinha(){
-  const ctx=document.getElementById("c-kpi-linha");
-  if(!ctx)return;
-
-  // Mesma lógica de filtro do renderCustos — ano + mês
-  const ano=document.getElementById("f-ano").value;
-  const mesesSel=getMs("mes");
-  let rows=matrizData;
-  if(ano){
-    rows=rows.filter(r=>{
-      const p=r.mes.toLowerCase().split("/");
-      const y=p[1]?String(parseInt(p[1])+(parseInt(p[1])<100?2000:0)):"";
-      return y===ano;
-    });
-  }
-  if(mesesSel.length>0){
-    const normMes=s=>s.trim().toLowerCase();
-    rows=rows.filter(r=>mesesSel.some(m=>normMes(m)===normMes(r.mes)));
-  }
-
-  // Ordena cronologicamente
-  rows=[...rows].sort((a,b)=>{
-    const parse=s=>{
-      const p=s.split("/");
-      const MM={"jan":1,"fev":2,"mar":3,"abr":4,"mai":5,"jun":6,"jul":7,"ago":8,"set":9,"out":10,"nov":11,"dez":12};
-      const m=MM[p[0].toLowerCase()]||0;
-      const y=p[1]?parseInt(p[1])+(parseInt(p[1])<100?2000:0):0;
-      return y*100+m;
-    };
-    return parse(a.mes)-parse(b.mes);
+  const rows=matrizRowsFiltradas();
+  const liqPorMes={};
+  filteredData.forEach(d=>{
+    const k=(d.mes||"").toLowerCase();
+    liqPorMes[k]=(liqPorMes[k]||0)+(d.liquido||0);
   });
-
-  const labels=rows.map(r=>r.mes.toUpperCase());
-  const tipoGrafico=tipoGraficoPorQtdMeses(labels.length);
-
-  // Eficiência Operacional por mês: precisamos da receita líquida por mês dos filteredData
-  // Usa filteredData para calcular liq por mês
-  const efArr=rows.map(r=>{
-    const mesLiq=filteredData.filter(d=>d.mes.toLowerCase()===r.mes.toLowerCase()).reduce((s,d)=>s+d.liquido,0);
-    return r.custoGeral>0 ? parseFloat((mesLiq/r.custoGeral).toFixed(3)) : 0;
-  });
-
-  // KPIs por mês — valores em % (0..1) exceto MKP que é multiplicador
-  const lucArr  = rows.map(r=> parseFloat((r.pctLuc*100).toFixed(2)));        // % Lucratividade
-  const cmvArr  = rows.map(r=> parseFloat((r.pctCmv*100).toFixed(2)));        // % CMV
-  const mkpArr  = rows.map(r=> parseFloat((r.mkp||0).toFixed(3)));            // MKP ×
-  const mcArr   = rows.map(r=> parseFloat((r.margem*100).toFixed(2)));        // % Margem Contrib
-  const efPctArr= efArr.map(v=> parseFloat((v*100).toFixed(2)));              // Eficiência × → %
-
-  if(charts["kpi-linha"])charts["kpi-linha"].destroy();
-  charts["kpi-linha"]=new Chart(ctx,{
-    type:tipoGrafico,
-    data:{
-      labels,
-      datasets:[
-        datasetAuto("Lucratividade %",   lucArr,   "#00ffcc",[],"y",tipoGrafico),
-        datasetAuto("% CMV",             cmvArr,   "#ff3c6e",[5,3],"y",tipoGrafico),
-        datasetAuto("Margem Contrib. %", mcArr,    "#7fff00",[4,2],"y",tipoGrafico),
-        datasetAuto("Eficiência ×100",   efPctArr, "#a78bfa",[3,3],"y",tipoGrafico),
-        datasetAuto("MKP ×",             mkpArr,   "#f5a623",[], "y2",tipoGrafico),
-      ]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      interaction:{mode:"index",intersect:false},
-      plugins:{
-        legend:{
-          labels:{color:"#c0c0d8",font:{family:"DM Sans",size:11},boxWidth:14,padding:16,usePointStyle:true,pointStyleWidth:10}
-        },
-        tooltip:{
-          backgroundColor:"#18181f",
-          borderColor:"#26263a",
-          borderWidth:1,
-          titleColor:"#f0f0f8",
-          bodyColor:"#b0b0cc",
-          padding:12,
-          callbacks:{
-            label:c=>{
-              const v=c.raw;
-              if(c.dataset.label.startsWith("MKP")) return ` MKP: ×${v.toFixed(2)}`;
-              if(c.dataset.label.startsWith("Efici")) return ` Eficiência: ×${(v/100).toFixed(2)}`;
-              return ` ${c.dataset.label}: ${v.toFixed(1)}%`;
-            }
-          }
-        }
-      },
-      scales:{
-        x:{
-          ticks:{color:"#808099",font:{family:"DM Sans",size:10},autoSkip:labels.length>12,maxTicksLimit:12,maxRotation:labels.length>12?45:0},
-          grid:{color:"#1c1c28"}
-        },
-        y:{
-          position:"left",
-          title:{display:true,text:"Percentual (%)",color:"#606080",font:{size:10,family:"DM Sans"}},
-          ticks:{color:"#808099",font:{family:"DM Sans",size:10},callback:v=>v+"%"},
-          grid:{color:"#1c1c28"}
-        },
-        y2:{
-          position:"right",
-          title:{display:true,text:"MKP (×)",color:"#f5a623",font:{size:10,family:"DM Sans"}},
-          ticks:{color:"#f5a623",font:{family:"DM Sans",size:10},callback:v=>"×"+v.toFixed(1)},
-          grid:{drawOnChartArea:false}
-        }
-      }
-    }
-  });
+  const metrics=[
+    {label:"Lucratividade",tag:"% LL",color:"#00ffcc",lowerBetter:false,fmt:fmtPerc,value:r=>(r.pctLuc||0)*100},
+    {label:"CMV",tag:"% CMV",color:"#ff3c6e",lowerBetter:true,fmt:fmtPerc,value:r=>(r.pctCmv||0)*100},
+    {label:"Margem de Contribuição",tag:"Margem",color:"#7fff00",lowerBetter:false,fmt:fmtPerc,value:r=>(r.margem||0)*100},
+    {label:"Eficiência Operacional",tag:"Eficiência",color:"#a78bfa",lowerBetter:false,fmt:fmtMult,value:r=>{
+      const mesLiq=liqPorMes[(r.mes||"").toLowerCase()]||0;
+      return r.custoGeral>0 ? mesLiq/r.custoGeral : 0;
+    }},
+    {label:"Markup",tag:"MKP",color:"#f5a623",lowerBetter:false,fmt:fmtMult,value:r=>r.mkp||0}
+  ];
+  renderQuadroMesAMes("quadro-kpi",rows,metrics,"Nos indicadores, verde indica melhora contra o mês anterior. No CMV, queda é tratada como melhora.");
 }
 
 function renderTable(){
