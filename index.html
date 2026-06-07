@@ -243,6 +243,24 @@
   .audit-box:active::after,.audit-result-card:active::after,.audit-card:active::after,.audit-analytic-card:active::after,
   .fin-zone:active::after{opacity:1}
 
+
+  /* ── BOTÃO CARREGAR PLANILHA ── */
+  #btn-carregar{
+    position:fixed;bottom:2rem;right:2rem;z-index:200;
+    background:var(--accent);color:#0a0a0f;border:none;border-radius:50px;
+    padding:.85rem 1.8rem;font-family:var(--font-head);font-size:1.1rem;letter-spacing:.1em;
+    cursor:pointer;box-shadow:0 4px 24px rgba(245,166,35,.45);
+    display:flex;align-items:center;gap:.6rem;transition:all .2s;white-space:nowrap
+  }
+  #btn-carregar:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 32px rgba(245,166,35,.6)}
+  #sem-dados{
+    position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1.5rem;pointer-events:none
+  }
+  #sem-dados-inner{
+    background:var(--card);border:1px solid var(--border);border-radius:20px;
+    padding:3rem 4rem;text-align:center;pointer-events:auto
+  }
 </style>
 </head>
 <body>
@@ -500,8 +518,7 @@ function cOpts(){
   zone.addEventListener("dragleave",()=>zone.classList.remove("drag"));
   zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("drag");if(e.dataTransfer.files[0])load(e.dataTransfer.files[0]);});
   zone.addEventListener("click",e=>{if(e.target.tagName!=="BUTTON")inp.click();});
-  // Mostra seletor de arquivo automaticamente ao carregar a página
-  setTimeout(()=>{ document.getElementById('file-input').click(); }, 300);
+
 })();
 
 function setProgress(pct, step){
@@ -664,7 +681,7 @@ function _processBuffer(buffer){
                     applyFilters();
                     setProgress(100, "Pronto!");
                     nextFrame(()=>{
-                      document.getElementById("loading-screen").style.display="none";
+                      document.getElementById("loading-screen").style.display="none";document.getElementById('btn-carregar').style.display='none';const sd=document.getElementById('sem-dados');if(sd)sd.style.display='none';
                       document.getElementById("dashboard").style.display="block";
                     });
                   });
@@ -2300,5 +2317,21 @@ function auditarProdutos(){
 }
 
 </script>
+
+<div id="sem-dados">
+  <div id="sem-dados-inner">
+    <div style="font-family:var(--font-head);font-size:3rem;letter-spacing:.1em;color:var(--accent);margin-bottom:.5rem">JANELA <span style="color:var(--text)">BAR</span></div>
+    <div style="color:var(--muted);font-size:.9rem;margin-bottom:2rem;letter-spacing:.08em;text-transform:uppercase">Dashboard de Vendas · Paranaguá</div>
+    <button onclick="document.getElementById('file-input').click()" style="background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:1rem 2.5rem;font-family:var(--font-head);font-size:1.3rem;letter-spacing:.1em;cursor:pointer">
+      📂 CARREGAR PLANILHA
+    </button>
+    <p style="color:var(--muted);font-size:.78rem;margin-top:1rem">Selecione o arquivo Por_venda_2026.xlsm</p>
+  </div>
+</div>
+
+<button id="btn-carregar" onclick="document.getElementById('file-input').click()">
+  📂 Carregar Planilha
+</button>
+
 </body>
 </html>
