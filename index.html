@@ -25,11 +25,10 @@
   .upload-zone .icon{font-size:3rem;margin-bottom:1rem}
   .upload-zone p{color:var(--muted);font-size:.88rem;margin-top:.5rem}
   .upload-zone strong{color:var(--text);font-size:1.05rem}
-  #file-input{display:none}
   .upload-btn{margin-top:1rem;background:var(--accent);color:#0a0a0f;border:none;border-radius:8px;padding:.75rem 2rem;font-family:var(--font-head);font-size:1.1rem;letter-spacing:.08em;cursor:pointer;transition:opacity .2s}
   .upload-btn:hover{opacity:.85}
   .upload-hint{font-size:.75rem;color:var(--muted);margin-top:.5rem}
-  #dashboard{display:block;min-height:100vh}
+  #dashboard{display:none;min-height:100vh}
   .topbar{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.7rem 2rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
   .topbar-logo{font-family:var(--font-head);font-size:1.5rem;letter-spacing:.12em;color:var(--accent);white-space:nowrap}
   .topbar-logo span{color:var(--text)}
@@ -243,31 +242,20 @@
   .audit-box:active::after,.audit-result-card:active::after,.audit-card:active::after,.audit-analytic-card:active::after,
   .fin-zone:active::after{opacity:1}
 
-
-  /* ── BOTÃO CARREGAR PLANILHA ── */
-  #btn-carregar{
-    position:fixed;bottom:2rem;right:2rem;z-index:200;
-    background:var(--accent);color:#0a0a0f;border:none;border-radius:50px;
-    padding:.85rem 1.8rem;font-family:var(--font-head);font-size:1.1rem;letter-spacing:.1em;
-    cursor:pointer;box-shadow:0 4px 24px rgba(245,166,35,.45);
-    display:flex;align-items:center;gap:.6rem;transition:all .2s;white-space:nowrap
-  }
-  #btn-carregar:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 32px rgba(245,166,35,.6)}
-  #sem-dados{
-    position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:1.5rem;pointer-events:none
-  }
-  #sem-dados-inner{
-    background:var(--card);border:1px solid var(--border);border-radius:20px;
-    padding:3rem 4rem;text-align:center;pointer-events:auto
-  }
 </style>
 </head>
 <body>
 
-<div id="upload-screen" style="display:none">
-  <div class="upload-zone" id="drop-zone" style="display:none"></div>
-  <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
+<div id="upload-screen">
+  <div class="upload-logo">JANELA <span>BAR</span></div>
+  <div class="upload-sub">Dashboard de Vendas &middot; Paran&aacute;gu&aacute;</div>
+  <div class="upload-zone" id="status-zone" style="cursor:default">
+    <div class="icon">&#127866;</div>
+    <strong>Carregando base hospedada</strong>
+    <p id="hosted-status">A base <b>Por_venda_2026.xlsm</b> será lida automaticamente.</p>
+    <button class="upload-btn" type="button" onclick="loadHostedExcel()">TENTAR NOVAMENTE</button>
+    <p class="upload-hint">Para atualizar os dados, substitua a planilha hospedada mantendo exatamente o mesmo nome.</p>
+  </div>
 </div>
 
 <!-- LOADING SCREEN -->
@@ -352,7 +340,7 @@
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem">
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
         <button class="reload-btn" onclick="abrirAuditoria()">&#128269; Auditoria</button>
-        <button class="reload-btn" onclick="document.getElementById('file-input').click()">&#8635; Trocar arquivo</button>
+        <button class="reload-btn" onclick="loadHostedExcel()">&#8635; Atualizar dados</button>
       </div>
       <span class="file-name" id="file-name-disp">nenhum arquivo</span>
     </div>
@@ -478,6 +466,12 @@
 // 13=Forma de Pagamento, 16=Grupo, 17=DIA SEMANA
 // 19=FAIXA DE HORA, 20=Mes/Ano, 21=Liquido, 22=Qt.VENDAS
 
+// ── CONFIGURAÇÃO DA BASE HOSPEDADA ──
+// Para atualizar os dados do dashboard publicado, substitua no servidor apenas o arquivo abaixo,
+// mantendo este mesmo nome. O HTML irá buscar a planilha automaticamente no mesmo diretório.
+const HOSTED_EXCEL_URL = "./Por_venda_2026.xlsm";
+const AUTO_LOAD_HOSTED_EXCEL = true;
+
 let allData=[], filteredData=[], charts={};
 let matrizData=[]; // dados da aba MATRIZ ANALITICO
 let projecaoData=null; // dados da aba Projeção
@@ -507,19 +501,7 @@ function cOpts(){
   };
 }
 
-
-
-// UPLOAD MANUAL (fallback)
-(function(){
-  const inp=document.getElementById("file-input");
-  const zone=document.getElementById("drop-zone");
-  inp.addEventListener("change",e=>{if(e.target.files[0])load(e.target.files[0]);});
-  zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("drag");});
-  zone.addEventListener("dragleave",()=>zone.classList.remove("drag"));
-  zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("drag");if(e.dataTransfer.files[0])load(e.dataTransfer.files[0]);});
-  zone.addEventListener("click",e=>{if(e.target.tagName!=="BUTTON")inp.click();});
-
-})();
+// Upload manual removido: a base agora é carregada automaticamente da hospedagem.
 
 function setProgress(pct, step){
   const circumference = 2 * Math.PI * 70;
@@ -542,17 +524,15 @@ function load(file){
   document.getElementById("upload-screen").style.display = "none";
   document.getElementById("loading-screen").style.display = "flex";
   setProgress(0, "Lendo arquivo...");
-  const reader = new FileReader();
-  reader.onload = e => { _processBuffer(e.target.result); };
-  reader.readAsArrayBuffer(file);
-}
 
-function _processBuffer(buffer){
+  const reader = new FileReader();
+  reader.onload = e => {
+    // Etapa 1: decode
     nextFrame(()=>{
       setProgress(12, "Decodificando planilha...");
       nextFrame(()=>{
         let wb;
-        try{ wb = XLSX.read(buffer,{type:"array"}); }
+        try{ wb = XLSX.read(e.target.result,{type:"array"}); }
         catch(err){ _loadErr(err); return; }
 
         const norm = s => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");
@@ -681,7 +661,7 @@ function _processBuffer(buffer){
                     applyFilters();
                     setProgress(100, "Pronto!");
                     nextFrame(()=>{
-                      document.getElementById("loading-screen").style.display="none";document.getElementById('btn-carregar').style.display='none';const sd=document.getElementById('sem-dados');if(sd)sd.style.display='none';
+                      document.getElementById("loading-screen").style.display="none";
                       document.getElementById("dashboard").style.display="block";
                     });
                   });
@@ -692,12 +672,16 @@ function _processBuffer(buffer){
         });
       });
     });
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function _loadErr(err){
   document.getElementById("loading-screen").style.display="none";
+  document.getElementById("dashboard").style.display="none";
   document.getElementById("upload-screen").style.display="flex";
-  alert("Erro: "+err.message);
+  const status = document.getElementById("hosted-status");
+  if(status) status.innerHTML = "Erro ao processar a base hospedada: " + err.message;
   console.error(err);
 }
 
@@ -2316,22 +2300,52 @@ function auditarProdutos(){
   document.getElementById("audit-resumo").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
+
+// ── CARREGAMENTO AUTOMÁTICO DA PLANILHA HOSPEDADA ──
+async function loadHostedExcel(){
+  const status = document.getElementById("hosted-status");
+  const setStatus = msg => { if(status) status.textContent = msg; };
+  try{
+    document.getElementById("dashboard").style.display="none";
+    document.getElementById("upload-screen").style.display="none";
+    document.getElementById("loading-screen").style.display="flex";
+    setProgress(5, "Buscando base hospedada...");
+    setStatus("Buscando base hospedada...");
+    const resp = await fetch(HOSTED_EXCEL_URL, {cache:"no-store"});
+    if(!resp.ok){
+      throw new Error("Não foi possível acessar a planilha hospedada (HTTP " + resp.status + ").");
+    }
+    const blob = await resp.blob();
+    if(!blob || blob.size < 1000){
+      throw new Error("A planilha hospedada parece vazia ou inválida.");
+    }
+    const file = new File([blob], "Por_venda_2026.xlsm", {
+      type:"application/vnd.ms-excel.sheet.macroEnabled.12"
+    });
+    load(file);
+  }catch(err){
+    console.warn("Falha ao carregar base hospedada:", err);
+    document.getElementById("loading-screen").style.display="none";
+    document.getElementById("dashboard").style.display="none";
+    document.getElementById("upload-screen").style.display="flex";
+    setStatus("Não consegui carregar a base hospedada. Verifique se Por_venda_2026.xlsm está na mesma pasta do HTML e se o site foi aberto por HTTPS/HTTP.");
+  }
+}
+
+// Em arquivo local (file://), navegadores costumam bloquear fetch de arquivo local.
+// Quando publicado em HTTPS/HTTP, o dashboard tenta abrir a planilha automaticamente.
+window.addEventListener("DOMContentLoaded", () => {
+  if(AUTO_LOAD_HOSTED_EXCEL && location.protocol !== "file:"){
+    loadHostedExcel();
+  } else {
+    document.getElementById("loading-screen").style.display="none";
+    document.getElementById("dashboard").style.display="none";
+    document.getElementById("upload-screen").style.display="flex";
+    const status = document.getElementById("hosted-status");
+    if(status) status.innerHTML = "Para carregar automaticamente, publique o HTML em HTTPS/HTTP junto com <b>Por_venda_2026.xlsm</b>. Abrir direto no computador como file:// costuma bloquear a leitura automática.";
+  }
+});
+
 </script>
-
-<div id="sem-dados">
-  <div id="sem-dados-inner">
-    <div style="font-family:var(--font-head);font-size:3rem;letter-spacing:.1em;color:var(--accent);margin-bottom:.5rem">JANELA <span style="color:var(--text)">BAR</span></div>
-    <div style="color:var(--muted);font-size:.9rem;margin-bottom:2rem;letter-spacing:.08em;text-transform:uppercase">Dashboard de Vendas · Paranaguá</div>
-    <button onclick="document.getElementById('file-input').click()" style="background:var(--accent);color:#0a0a0f;border:none;border-radius:10px;padding:1rem 2.5rem;font-family:var(--font-head);font-size:1.3rem;letter-spacing:.1em;cursor:pointer">
-      📂 CARREGAR PLANILHA
-    </button>
-    <p style="color:var(--muted);font-size:.78rem;margin-top:1rem">Selecione o arquivo Por_venda_2026.xlsm</p>
-  </div>
-</div>
-
-<button id="btn-carregar" onclick="document.getElementById('file-input').click()">
-  📂 Carregar Planilha
-</button>
-
 </body>
 </html>
