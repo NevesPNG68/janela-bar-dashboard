@@ -1724,6 +1724,34 @@ function renderSemana(){
 }
 
 // TABLE
+function tipoGraficoPorQtdMeses(qtdMeses){
+  if(qtdMeses<=3) return "bar";
+  if(qtdMeses>12) return "bar";
+  return "line";
+}
+
+function datasetAuto(label,data,color,dash=[],yAxis="y",tipo="line"){
+  const isBar = tipo === "bar";
+  return {
+    label, data,
+    type: tipo,
+    borderColor:color,
+    backgroundColor:isBar ? color+"88" : color+"18",
+    pointBackgroundColor:color,
+    pointBorderColor:"#0a0a0f",
+    pointRadius:isBar ? 0 : 5,
+    pointHoverRadius:isBar ? 0 : 8,
+    borderWidth:isBar ? 1.5 : 2.5,
+    tension:isBar ? 0 : 0.35,
+    fill:false,
+    borderDash:isBar ? [] : dash,
+    yAxisID:yAxis,
+    borderRadius:isBar ? 5 : 0,
+    barPercentage:isBar ? 0.78 : undefined,
+    categoryPercentage:isBar ? 0.72 : undefined,
+  };
+}
+
 function renderCustos(){
   const ctx=document.getElementById("c-custos");
   if(!ctx)return;
@@ -1757,37 +1785,25 @@ function renderCustos(){
   });
 
   const labels=rows.map(r=>r.mes.toUpperCase());
+  const tipoGrafico=tipoGraficoPorQtdMeses(labels.length);
+
   // custoVariavel = custoGeral - totalFixo
   const totalArr=rows.map(r=>r.custoGeral||0);
   const fixoArr=rows.map(r=>r.custoFixo||0);
   const fixoVarArr=rows.map(r=>r.custoFixoVar||0);
   const varArr=rows.map(r=>Math.max(0,(r.custoGeral||0)-(r.totalFixo||0)));
 
-  const ds=(label,data,color,dash=[])=>({
-    label,data,
-    borderColor:color,
-    backgroundColor:color+"22",
-    pointBackgroundColor:color,
-    pointBorderColor:"#0a0a0f",
-    pointRadius:5,
-    pointHoverRadius:8,
-    borderWidth:2.5,
-    tension:0.35,
-    fill:false,
-    borderDash:dash
-  });
-
   if(charts["custos"])charts["custos"].destroy();
   charts["custos"]=new Chart(ctx,{
-    type:"line",
+    type:tipoGrafico,
     data:{
       labels,
       datasets:[
-        ds("Total",         totalArr,    "#ff3c6e"),
-        ds("Fixo",          fixoArr,     "#e8ff00"),
-        ds("Fixo/Variável", fixoVarArr,  "#7fff00",[6,3]),
-        ds("Total Fixo",    rows.map(r=>r.totalFixo||0), "#ff69b4",[4,2]),
-        ds("Variável",      varArr,      "#00e5ff",[3,3])
+        datasetAuto("Total",         totalArr,    "#ff3c6e",[],"y",tipoGrafico),
+        datasetAuto("Fixo",          fixoArr,     "#e8ff00",[],"y",tipoGrafico),
+        datasetAuto("Fixo/Variável", fixoVarArr,  "#7fff00",[6,3],"y",tipoGrafico),
+        datasetAuto("Total Fixo",    rows.map(r=>r.totalFixo||0), "#ff69b4",[4,2],"y",tipoGrafico),
+        datasetAuto("Variável",      varArr,      "#00e5ff",[3,3],"y",tipoGrafico)
       ]
     },
     options:{
@@ -1810,7 +1826,7 @@ function renderCustos(){
       },
       scales:{
         x:{
-          ticks:{color:"#606080",font:{family:"DM Sans",size:10}},
+          ticks:{color:"#606080",font:{family:"DM Sans",size:10},autoSkip:labels.length>12,maxTicksLimit:12,maxRotation:labels.length>12?45:0},
           grid:{color:"#1c1c28"}
         },
         y:{
@@ -1855,6 +1871,7 @@ function renderKpiLinha(){
   });
 
   const labels=rows.map(r=>r.mes.toUpperCase());
+  const tipoGrafico=tipoGraficoPorQtdMeses(labels.length);
 
   // Eficiência Operacional por mês: precisamos da receita líquida por mês dos filteredData
   // Usa filteredData para calcular liq por mês
@@ -1870,32 +1887,17 @@ function renderKpiLinha(){
   const mcArr   = rows.map(r=> parseFloat((r.margem*100).toFixed(2)));        // % Margem Contrib
   const efPctArr= efArr.map(v=> parseFloat((v*100).toFixed(2)));              // Eficiência × → %
 
-  const ds=(label,data,color,dash=[],yAxis="y")=>({
-    label, data,
-    borderColor:color,
-    backgroundColor:color+"18",
-    pointBackgroundColor:color,
-    pointBorderColor:"#0a0a0f",
-    pointRadius:5,
-    pointHoverRadius:9,
-    borderWidth:2.5,
-    tension:0.35,
-    fill:false,
-    borderDash:dash,
-    yAxisID:yAxis,
-  });
-
   if(charts["kpi-linha"])charts["kpi-linha"].destroy();
   charts["kpi-linha"]=new Chart(ctx,{
-    type:"line",
+    type:tipoGrafico,
     data:{
       labels,
       datasets:[
-        ds("Lucratividade %",   lucArr,   "#00ffcc"),
-        ds("% CMV",             cmvArr,   "#ff3c6e",[5,3]),
-        ds("Margem Contrib. %", mcArr,    "#7fff00",[4,2]),
-        ds("Eficiência ×100",   efPctArr, "#a78bfa",[3,3]),
-        ds("MKP ×",             mkpArr,   "#f5a623",[], "y2"),
+        datasetAuto("Lucratividade %",   lucArr,   "#00ffcc",[],"y",tipoGrafico),
+        datasetAuto("% CMV",             cmvArr,   "#ff3c6e",[5,3],"y",tipoGrafico),
+        datasetAuto("Margem Contrib. %", mcArr,    "#7fff00",[4,2],"y",tipoGrafico),
+        datasetAuto("Eficiência ×100",   efPctArr, "#a78bfa",[3,3],"y",tipoGrafico),
+        datasetAuto("MKP ×",             mkpArr,   "#f5a623",[], "y2",tipoGrafico),
       ]
     },
     options:{
@@ -1925,7 +1927,7 @@ function renderKpiLinha(){
       },
       scales:{
         x:{
-          ticks:{color:"#808099",font:{family:"DM Sans",size:10},maxRotation:45},
+          ticks:{color:"#808099",font:{family:"DM Sans",size:10},autoSkip:labels.length>12,maxTicksLimit:12,maxRotation:labels.length>12?45:0},
           grid:{color:"#1c1c28"}
         },
         y:{
