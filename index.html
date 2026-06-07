@@ -199,9 +199,33 @@
   .audit-analytic-empty{padding:1rem 1.2rem;color:var(--muted);font-size:.82rem}
 
 
+
+
+  /* ── METAS DO MÊS — estilo velocímetro da aba Dashboard ── */
+  .goals-dashboard{margin-bottom:1.5rem}
+  .goal-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.15rem 1.25rem;margin-bottom:1rem;position:relative;overflow:hidden}
+  .goal-panel::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--goal-color,var(--accent));box-shadow:0 0 18px var(--goal-color,var(--accent))}
+  .goal-panel::after{content:"";position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(180deg,color-mix(in srgb,var(--goal-color,var(--accent)) 16%,transparent),transparent);opacity:.7;pointer-events:none}
+  .goal-head{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:.85rem;flex-wrap:wrap;margin-bottom:1rem;text-align:center}
+  .goal-title{font-family:var(--font-head);font-size:1.45rem;letter-spacing:.08em;color:var(--goal-color,var(--accent))}
+  .goal-meta,.goal-gap{font-weight:800;letter-spacing:.03em}
+  .goal-meta{color:var(--text)}
+  .goal-gap{color:#3b82f6}
+  .goal-gap.hit{color:#22c55e}
+  .goal-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(135px,1fr));gap:.85rem;align-items:end}
+  .goal-gauge-card{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:.75rem .55rem .8rem;text-align:center;min-height:132px}
+  .goal-week{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800;margin-bottom:.45rem}
+  .semi-gauge{width:140px;height:70px;margin:0 auto;position:relative;border-radius:140px 140px 0 0;overflow:hidden;filter:drop-shadow(0 0 7px color-mix(in srgb,var(--goal-color,var(--accent)) 55%,transparent))}
+  .semi-gauge::after{content:"";position:absolute;left:14px;top:14px;width:112px;height:56px;background:#18181f;border-radius:112px 112px 0 0;box-shadow:inset 0 7px 18px rgba(255,255,255,.06)}
+  .goal-pct{position:absolute;z-index:2;left:0;right:0;bottom:20px;font-weight:900;font-size:1rem;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.55)}
+  .goal-value{position:absolute;z-index:2;left:0;right:0;bottom:1px;font-weight:900;font-size:.88rem;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.55)}
+  .goal-source{color:var(--muted);font-size:.74rem;margin:-.25rem 0 .9rem;text-align:center;letter-spacing:.04em}
+  @media(max-width:1100px){.goal-grid{grid-template-columns:repeat(3,minmax(130px,1fr))}}
+  @media(max-width:640px){.goal-grid{grid-template-columns:repeat(2,minmax(130px,1fr))}.semi-gauge{width:126px;height:63px}.semi-gauge::after{left:13px;top:13px;width:100px;height:50px}.goal-head{justify-content:flex-start;text-align:left}.goal-title{font-size:1.25rem}}
+
   /* ── PADRÃO APROVADO DOS CARDS: BORDA SUPERIOR + NEON ÚNICO ── */
   .kpi-card,.fin-zone,.fin-kpi,.chart-card,.table-card,.audit-box,
-  .audit-result-card,.audit-card,.audit-analytic-card{
+  .audit-result-card,.audit-card,.audit-analytic-card,.goal-panel,.goal-gauge-card{
     --neon-card: var(--accent);
     --neon-rgb: 245,166,35;
     border:1px solid rgba(255,255,255,.07) !important;
@@ -216,7 +240,7 @@
   }
   .kpi-card::after,.fin-kpi::after,.chart-card::after,.table-card::after,
   .audit-box::after,.audit-result-card::after,.audit-card::after,.audit-analytic-card::after,
-  .fin-zone::after{
+  .fin-zone::after,.goal-panel::after,.goal-gauge-card::after{
     content:"";
     position:absolute;
     top:0;left:0;right:0;height:44%;
@@ -227,10 +251,10 @@
   }
   .kpi-card:hover,.fin-kpi:hover,.chart-card:hover,.table-card:hover,
   .audit-box:hover,.audit-result-card:hover,.audit-card:hover,.audit-analytic-card:hover,
-  .fin-zone:hover,
+  .fin-zone:hover,.goal-panel:hover,.goal-gauge-card:hover,
   .kpi-card:active,.fin-kpi:active,.chart-card:active,.table-card:active,
   .audit-box:active,.audit-result-card:active,.audit-card:active,.audit-analytic-card:active,
-  .fin-zone:active{
+  .fin-zone:active,.goal-panel:active,.goal-gauge-card:active{
     transform:translateY(-3px);
     border-color:rgba(var(--neon-rgb),.42) !important;
     border-top-color:var(--neon-card) !important;
@@ -373,6 +397,10 @@
   <div class="main">
     <div class="kpi-row" id="kpi-row"></div>
 
+    <!-- METAS DO MÊS — inspirado na aba Dashboard do Excel -->
+    <div class="section-title">Metas do M&ecirc;s <span class="tag">DASHBOARD</span></div>
+    <div id="metas-dashboard" class="goals-dashboard"></div>
+
     <!-- RESULTADOS FINANCEIROS — lidos da aba MATRIZ ANALITICO -->
     <div class="section-title">Resultados Financeiros <span class="tag">MATRIZ ANAL&Iacute;TICO</span></div>
     <div class="fin-grid">
@@ -503,6 +531,7 @@ const AUTO_LOAD_HOSTED_EXCEL = true;
 
 let allData=[], filteredData=[], charts={};
 let matrizData=[]; // dados da aba MATRIZ ANALITICO
+let dashboardGoalsData=null; // dados da aba dados graf KPI / Dashboard
 let projecaoData=null; // dados da aba Projeção
 let dadosDespesas=[]; // dados da aba Despesas para auditoria
 
@@ -643,7 +672,10 @@ function load(file){
                 }
               }
 
-              // Etapa 6: projeção
+              // Etapa 6: metas do mês / Dashboard
+              dashboardGoalsData = parseDashboardGoals(wb, normM);
+
+              // Etapa 7: projeção
               setProgress(78, "Calculando projeção...");
               nextFrame(()=>{
                 projecaoData = null;
@@ -768,7 +800,7 @@ function applyFilters(){
     (getMs("dia").length===0   ||getMs("dia").includes(d.dia))   &&
     (getMs("produto").length===0||getMs("produto").includes(d.produto))
   );
-  renderKPIs();renderFinanceiro();renderProjecao();renderCharts();renderTable();
+  renderKPIs();renderDashboardGoals();renderFinanceiro();renderProjecao();renderCharts();renderTable();
   requestAnimationFrame(applyNeonCards);
 }
 
@@ -887,6 +919,87 @@ function applyNeonCards(){
     // Mantém compatibilidade com cards que já usavam --kpi-color.
     card.style.setProperty('--kpi-color', cor.css);
   });
+}
+
+
+// METAS DO MÊS — dados vindos da aba "dados graf KPI"
+function parseDashboardGoals(wb,norm){
+  try{
+    const snG = wb.SheetNames.find(n=>norm(n).includes("dadosgrafkpi") || norm(n).includes("grafkpi"));
+    if(!snG) return null;
+    const raw = XLSX.utils.sheet_to_json(wb.Sheets[snG],{header:1,defval:null});
+    const snK = wb.SheetNames.find(n=>norm(n).includes("kpis"));
+    let mesLabel="";
+    if(snK){
+      const rawK = XLSX.utils.sheet_to_json(wb.Sheets[snK],{header:1,defval:null});
+      mesLabel = String((rawK[3]&&rawK[3][1]) || (rawK[2]&&rawK[2][5]) || "").trim();
+    }
+    const blocks=[
+      {label:"1ª Semana",row:0},
+      {label:"2ª Semana",row:5},
+      {label:"3ª Semana",row:12},
+      {label:"4ª Semana",row:19},
+      {label:"Total mês",row:24,total:true}
+    ];
+    const specs=[
+      {key:"fat",title:"Faturamento",color:"#f4f800",unit:"money",realCol:6,metaCol:7,metaTitle:"FATURAMENTO"},
+      {key:"tkt",title:"Ticket Médio",color:"#4cff4c",unit:"number",realCol:12,metaCol:13,metaTitle:"TICKET MÉDIO"},
+      {key:"drinks",title:"Drinks",color:"#ff40ff",unit:"qty",realCol:18,metaCol:19,metaTitle:"DRINKS"}
+    ];
+    const metrics=specs.map(sp=>{
+      const items=blocks.map(b=>{
+        const r=raw[b.row+2]||[];
+        const realized=parseFloat(r[sp.realCol])||0;
+        const meta=parseFloat(r[sp.metaCol])||0;
+        const pct=meta>0?Math.min(realized/meta,1):0;
+        return {label:b.label,total:!!b.total,realized,meta,pct,gap:Math.max(meta-realized,0)};
+      });
+      return {...sp,items,total:items[items.length-1]};
+    });
+    return {mes:mesLabel,metrics};
+  }catch(e){
+    console.warn("Não foi possível ler dados da aba Dashboard",e);
+    return null;
+  }
+}
+function fmtGoal(v,unit){
+  if(unit==="money") return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(unit==="qty") return Math.round(Number(v||0)).toLocaleString("pt-BR");
+  return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function renderDashboardGoals(){
+  const el=document.getElementById("metas-dashboard");
+  if(!el)return;
+  const data=dashboardGoalsData;
+  if(!data||!data.metrics||!data.metrics.length){
+    el.innerHTML=`<div class="chart-card" style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sem dados da aba Dashboard/dados graf KPI na planilha.</div>`;
+    return;
+  }
+  const panels=data.metrics.map(m=>{
+    const total=m.total||{};
+    const hit=(total.gap||0)<=0;
+    const metaTxt=fmtGoal(total.meta,m.unit);
+    const gapTxt=hit?"META BATIDA":fmtGoal(total.gap,m.unit);
+    const head=`<div class="goal-head">
+      <span class="goal-title">${m.metaTitle} · META = ${metaTxt}</span>
+      <span class="goal-gap ${hit?"hit":""}">${hit?gapTxt:"Falta para bater a META: " + gapTxt}</span>
+    </div>`;
+    const gauges=m.items.map(it=>{
+      const pct=Math.max(0,Math.min(1,it.pct||0));
+      const deg=(pct*180).toFixed(1);
+      const pctTxt=(pct*100).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
+      const valTxt=fmtGoal(it.realized,m.unit);
+      return `<div class="goal-gauge-card">
+        <div class="goal-week">${it.label}</div>
+        <div class="semi-gauge" style="--goal-color:${m.color};background:conic-gradient(from 270deg at 50% 100%, ${m.color} 0deg, ${m.color} ${deg}deg, rgba(255,255,255,.08) ${deg}deg, rgba(255,255,255,.08) 180deg, transparent 180deg)">
+          <div class="goal-pct">${pctTxt}</div>
+          <div class="goal-value">${valTxt}</div>
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="goal-panel" style="--goal-color:${m.color}">${head}<div class="goal-grid">${gauges}</div></div>`;
+  }).join("");
+  el.innerHTML=`${data.mes?`<div class="goal-source">Base da aba Dashboard: ${data.mes}</div>`:""}${panels}`;
 }
 
 // KPIs
