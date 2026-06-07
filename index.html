@@ -1,632 +1,3 @@
-
-Claude terminou a resposta
-tenho uma planilha de 50m e um html que lê a planilha.
-gostaria de saber onde poderia hospedar minha planilha e onde rodaria melhor meu html
-
-15:03
-
-Check user skills for context
-Check user skills for context
-Boa pergunta — deixa eu mapear as melhores opções para o seu caso específico.
-
-Você tem dois elementos:
-
-Planilha de 50MB (provavelmente um Excel/XLSM com dados pesados)
-HTML que lê essa planilha (dashboard estilo os que você já tem)
-Onde hospedar a planilha (50MB)
-Opção	Custo	Limite	Prático?
-GitHub Releases	Grátis	2GB por arquivo	✅ Ótimo — URL direta e estável
-GitHub LFS	Grátis até 1GB/mês	Pago acima disso	⚠️ Complica o workflow
-Google Drive	Grátis	15GB	⚠️ URL de download não é direta — exige workaround
-OneDrive	Grátis	5GB	⚠️ Mesma limitação do Drive
-Cloudflare R2	Grátis até 10GB	Escalável	✅ Excelente, mas precisa configurar
-Amazon S3	~R$0,10/mês por 50MB	Escalável	✅ Profissional, mas tem custo
-Recomendação direta: Para o seu uso (dashboards de negócio, acesso eventual), o GitHub Releases é a solução mais simples — você sobe o arquivo como "asset" de uma release e tem uma URL pública e permanente, sem configuração extra.
-
-Onde hospedar o HTML
-Pelo histórico dos seus projetos (GO Coffee, Janela Bar, Trans Obra), você já usa GitHub Pages e funciona muito bem. Continua sendo a melhor opção: grátis, HTTPS, URL limpa, zero manutenção.
-
-Como conectar os dois
-O ponto crítico é que seu HTML precisa fazer fetch() da planilha. Se ela estiver no GitHub Releases, a URL é direta e funciona sem CORS. Fluxo:
-
-GitHub Pages (HTML) → fetch() → GitHub Releases (planilha .xlsx)
-Se você usar o SheetJS (que já usa nos seus projetos), a leitura de um arquivo remoto é assim:
-
-javascript
-const url = 'https://github.com/seu-usuario/seu-repo/releases/download/v1.0/dados.xlsx';
-const res = await fetch(url);
-const buf = await res.arrayBuffer();
-const wb = XLSX.read(buf, { type: 'array' });
-Resumo prático
-O que	Onde	Por quê
-Planilha (50MB)	GitHub Releases	URL direta, grátis, sem CORS
-HTML/Dashboard	GitHub Pages	Já é seu padrão, funciona muito bem
-Quer que eu ajude a estruturar o repositório ou adaptar o código do HTML para carregar a planilha via URL do Release?
-
-replit, cloude cowork etc...
-
-15:05
-Boa — vou ampliar o mapa incluindo essas plataformas mais modernas.
-
-Plataformas completas (HTML + planilha no mesmo lugar)
-Plataforma	Hospeda HTML	Hospeda planilha 50MB	Custo	Observação
-Replit	✅	✅	Grátis limitado / ~US$7/mês	Sobe os dois arquivos no mesmo projeto. URL pública automática. Simples de usar.
-Claude Cowork	✅	⚠️	Incluso no plano Claude	Bom para rodar HTML interativo, mas não é pensado para hospedar arquivos pesados como repositório permanente
-Vercel	✅	⚠️	Grátis	Excelente para HTML/JS, mas limite de 50MB por arquivo no deploy é apertado — precisaria servir a planilha de outro lugar
-Netlify	✅	⚠️	Grátis	Mesmo caso do Vercel — deploy tem limite de 25MB por arquivo
-Render	✅	✅	Grátis com sleep / ~US$7/mês	Mais técnico, mas flexível
-Railway	✅	✅	~US$5/mês	Similar ao Render, bom para projetos que crescem
-Glitch	✅	⚠️	Grátis	Limite de 200MB por projeto, mas a planilha pode entrar folgado. Fica "dormindo" no plano grátis
-O problema específico dos 50MB
-Vercel e Netlify são ótimos para HTML mas não aceitam arquivos grandes no deploy. Você teria que separar mesmo — planilha em outro lugar, HTML neles.
-
-Replit é o que resolve tudo junto sem dor de cabeça: você sobe o .xlsx e o .html no mesmo projeto, aponta o fetch para o caminho relativo e funciona.
-
-Recomendação por perfil
-Quer o mais simples possível → Replit. Tudo no mesmo lugar, URL pública, sem configuração.
-
-Já usa GitHub e quer custo zero → GitHub Pages (HTML) + GitHub Releases (planilha). Já testado nos seus projetos.
-
-Quer algo mais profissional e escalável → Vercel (HTML) + Cloudflare R2 (planilha). Melhor performance, mas tem mais setup.
-
-Qual desses cenários mais se encaixa no que você quer fazer? Posso montar o passo a passo exato.
-
-me dê um norte
-
-15:07
-Para o seu perfil — empresário, sem equipe técnica, projetos de dashboard para uso próprio e dos negócios — a resposta é direta:
-
-Use GitHub. Ponto.
-Você já usa, já funciona, já conhece o fluxo. Não tem motivo para mudar.
-
-Planilha → GitHub Releases HTML → GitHub Pages
-
-Custo: zero. Manutenção: mínima. Funciona para sempre enquanto o repositório existir.
-
-Por que não os outros?
-Replit — bom, mas você paga para o projeto não "dormir". Para dashboard de negócio que você abre quando quer, não compensa.
-
-Vercel/Netlify — excelentes, mas não resolvem o problema dos 50MB. Você ainda precisaria do GitHub Releases para a planilha. Adiciona complexidade sem ganho real.
-
-Cowork — é para trabalhar com o Claude, não para hospedar arquivos. Não é essa a função.
-
-Único ajuste que você precisa fazer
-Hoje você provavelmente sobe a planilha dentro do repositório. Com 50MB, isso vai travar o Git com o tempo. A mudança é simples: sobe a planilha como Release asset em vez de arquivo do repo, e atualiza a URL no HTML. O resto continua igual.
-
-Quer que eu te mostre exatamente como fazer isso?
-
-como acesso o github releases
-
-15:08
-É bem simples. Passo a passo:
-
-1. Acesse seu repositório no GitHub
-Entre em github.com e abra o repositório onde está seu projeto.
-
-2. Clique em "Releases"
-Na página do repositório, no lado direito, você verá um painel "Releases". Clica nele.
-
-Se não aparecer, olha no menu superior: Code → (scroll para baixo na sidebar direita) → Releases
-
-3. Crie uma nova Release
-Clica em "Create a new release" (ou "Draft a new release").
-
-Preenche:
-
-Tag version → coloca algo como v1.0 ou dados-2026
-Title → ex: "Planilha de dados"
-A descrição é opcional
-4. Sobe sua planilha
-Na parte de baixo da tela tem uma área escrita "Attach binaries by dropping them here or selecting them".
-
-Arrasta seu .xlsx ali ou clica para selecionar. Ele aceita arquivos grandes tranquilo.
-
-5. Publica
-Clica em "Publish release".
-
-Pronto. Você terá uma URL pública permanente no formato:
-
-https://github.com/seu-usuario/seu-repo/releases/download/v1.0/arquivo.xlsx
-Essa URL você cola no seu HTML no fetch().
-
-Tem conta no GitHub já criada? E o repositório dos seus dashboards já existe lá?
-
-vc consegue acessar?
-
-15:08
-Não, não consigo acessar o GitHub por conta própria — não tenho como entrar na sua conta ou em repositórios privados.
-
-Mas consigo te ajudar de duas formas:
-
-Se o repositório for público — me passa a URL e consigo ler o conteúdo via ferramenta de busca.
-
-Se for privado — você me mostra o que precisar (cola o código, tira print, descreve o problema) e eu oriento exatamente o que fazer.
-
-Como estão seus repositórios — públicos ou privados?
-
-começo por onde?
-
-15:09
-Pelo mais simples — me responde três perguntas rápidas:
-
-1. Você já tem conta no GitHub?
-
-2. O HTML que lê a planilha já está hospedado em algum lugar?
-
-3. A planilha muda com frequência ou é relativamente estática?
-
-Com isso eu te dou o caminho exato, sem enrolação.
-
-uma vez por dia
-
-15:09
-Perfeito. Com atualização diária, o fluxo ideal é:
-
-Seu setup ideal
-Planilha → Google Drive HTML → GitHub Pages
-
-Por que Google Drive e não GitHub Releases?
-Porque a planilha muda todo dia. No GitHub Releases você teria que criar uma nova release a cada atualização — trabalhoso. No Google Drive você substitui o arquivo no mesmo lugar e a URL não muda.
-
-O fluxo diário seria
-Você atualiza a planilha normalmente no seu computador
-Sobe para o Google Drive substituindo o arquivo anterior
-O HTML já aponta para aquela URL — atualiza automaticamente
-Você não toca no HTML nunca mais.
-
-Próximo passo concreto
-Você já tem conta no Google Drive? Se sim, me confirma e eu te mostro exatamente como pegar a URL pública do arquivo para colar no seu HTML.
-
-mas armazena 50 mega
-
-15:10
-Sim, 50MB no Google Drive é tranquilo — você tem 15GB grátis na conta Google. 50MB é menos de 1% disso.
-
-Pode ir sem medo. Quer o passo a passo para subir e pegar a URL pública?
-
-e quanto ao github acessa-la
-
-15:10
-Boa pergunta. O Google Drive tem uma pegadinha — a URL de compartilhamento normal não funciona diretamente no fetch() do HTML.
-
-Você precisa converter ela. É simples:
-
-A URL que o Google Drive te dá
-https://drive.google.com/file/d/ARQUIVO_ID/view?usp=sharing
-A URL que o HTML precisa
-https://drive.google.com/uc?export=download&id=ARQUIVO_ID
-Você só pega o ID do meio e monta a segunda URL.
-
-Problema real
-Para arquivos acima de 25MB o Google Drive exige uma confirmação de vírus antes de baixar — o que quebra o fetch() automático do HTML.
-
-Seus 50MB caem exatamente nessa faixa problemática.
-
-Então a recomendação muda
-Opção	Atualização diária	50MB	Funciona no fetch
-Google Drive	✅ fácil	✅ armazena	⚠️ quebra acima de 25MB
-GitHub Releases	⚠️ trabalhoso	✅ funciona	✅ URL direta
-Cloudflare R2	✅ fácil	✅ funciona	✅ perfeito
-Minha recomendação revisada
-Cloudflare R2 para a planilha + GitHub Pages para o HTML.
-
-R2 é gratuito até 10GB, URL direta, sem bloqueio de tamanho, e você substitui o arquivo quando quiser.
-
-Quer que eu te mostre como configurar o R2? É mais simples do que parece.
-
-
-Por_venda_2026.xlsm
-xlsm
-
-
-dashboard_janela_bar_MEDIA_HISTORICA_NEON_CARDS.html
-html
-
-esse é o html
-
-15:11
-
-Executou 2 comandos, visualizou um arquivo
-Executou 2 comandos, visualizou um arquivo
-Entendi o seu setup. Já vi tudo que preciso.
-
-A situação real do seu HTML
-Seu dashboard não faz fetch automático — ele abre uma tela de upload onde você seleciona o arquivo manualmente toda vez que abre o HTML. O FileReader lê localmente pelo navegador.
-
-Isso significa que a hospedagem da planilha não importa para o funcionamento atual — o HTML já funciona offline, sem servidor nenhum.
-
-O que você realmente precisa decidir
-Cenário A — Continuar como está (mais simples)
-
-HTML no GitHub Pages
-Planilha no seu computador
-Toda vez que abre o dashboard, seleciona o arquivo atualizado
-Custo: zero. Trabalho extra: zero.
-Cenário B — Carregar automático (sem tela de upload)
-
-Requer modificar o HTML para fazer fetch() de uma URL
-Planilha precisa estar em algum lugar público com URL direta
-Melhor opção para isso: Cloudflare R2 ou GitHub Releases
-Mais confortável no dia a dia, mas exige uma configuração inicial
-Minha recomendação
-Se você atualiza a planilha uma vez por dia e abre o dashboard algumas vezes por dia, o Cenário A já resolve com zero esforço.
-
-Se quiser evitar a etapa de selecionar o arquivo toda vez, faço a modificação no HTML para carregar automático — aí a gente resolve a hospedagem da planilha junto.
-
-Qual prefere?
-
-preciso que tudo funcione fora do meu pc
-
-15:13
-Então o Cenário B é o caminho. Precisa de duas coisas:
-
-O que vamos fazer
-1. Planilha → hospedar em lugar com URL pública 2. HTML → modificar para carregar automático, sem tela de upload 3. HTML → hospedar no GitHub Pages
-
-Maior obstáculo: os 46MB da planilha
-Acabei de verificar — seu arquivo tem 46MB. Isso descarta algumas opções.
-
-A mais simples que funciona para você: Google Drive com um proxy.
-
-Mas antes de montar tudo — me responde uma coisa:
-
-A planilha que você atualiza todo dia, você atualiza no computador e sobe manualmente, ou ela já fica em algum lugar na nuvem (OneDrive, Google Drive, Dropbox)?
-
-Dependendo da resposta, o fluxo pode ficar bem mais simples.
-
-estou atualizando no me PC
-
-15:14
-Então o fluxo completo ficaria assim:
-
-Fluxo diário proposto
-Você atualiza a planilha no PC
-        ↓
-Sobe para o Google Drive (substitui o arquivo)
-        ↓
-Abre o dashboard no navegador → carrega automático
-O problema dos 46MB no Google Drive
-Como falei antes, o Drive bloqueia download direto acima de 25MB. Tem um workaround, mas é frágil — o Google muda o comportamento sem avisar.
-
-Alternativa mais robusta: GitHub Releases
-O fluxo seria o mesmo, mas mais confiável:
-
-Atualiza a planilha no PC
-        ↓
-Sobe no GitHub Releases (substitui o asset)
-        ↓
-Dashboard carrega automático via URL direta
-A URL não muda nunca. Sem bloqueio de tamanho. Sem CORS.
-
-Antes de decidir — pergunta importante
-Você tem conta no GitHub já criada?
-
-Se sim, partimos para o GitHub Releases agora — configuro o HTML modificado e te passo o passo a passo de como subir a planilha. Leva menos de 10 minutos para configurar uma vez, e depois é só substituir o arquivo quando atualizar.
-
-github, sim
-
-15:15
-Perfeito. Vamos montar tudo então.
-
-O plano:
-
-Você cria um repositório no GitHub
-Sobe o HTML no GitHub Pages
-Sobe a planilha como Release asset
-Eu modifico o HTML para carregar automático pela URL
-Passo 1 — Crie o repositório
-Entre em github.com, clique em "New repository" e preencha:
-
-Repository name: janela-bar-dashboard (ou o nome que quiser)
-Public ✅
-Add a README file ✅
-Clica em "Create repository".
-
-Passo 2 — Suba o HTML
-Dentro do repositório criado:
-
-Clica em "Add file" → "Upload files"
-Arrasta o arquivo dashboard_janela_bar_MEDIA_HISTORICA_NEON_CARDS.html
-Renomeia para index.html antes de subir, ou depois nas configurações
-Clica em "Commit changes"
-Passo 3 — Ative o GitHub Pages
-Vai em Settings → Pages
-Em "Source" seleciona "Deploy from a branch"
-Branch: main, pasta: / (root)
-Clica em Save
-Em 2 minutos seu dashboard estará em: https://seu-usuario.github.io/janela-bar-dashboard
-
-Passo 4 — Suba a planilha como Release
-No repositório, clica em "Releases" (sidebar direita)
-"Create a new release"
-Tag: dados-v1
-Title: Planilha Janela Bar
-Arrasta o arquivo .xlsm na área de anexos
-"Publish release"
-Sua URL da planilha será:
-
-https://github.com/SEU-USUARIO/janela-bar-dashboard/releases/download/dados-v1/Por_venda_2026.xlsm
-Me avisa quando terminar esses 4 passos. Aí eu modifico o HTML para carregar a planilha automático por essa URL — sem tela de upload.
-
-mas o html ainda não modificado
-
-15:16
-Exato — faz os 4 passos primeiro assim:
-
-Cria o repositório
-Sobe o HTML original (por enquanto sem modificação)
-Ativa o GitHub Pages
-Sobe a planilha como Release
-Quando tiver a URL da planilha no formato:
-
-https://github.com/SEU-USUARIO/janela-bar-dashboard/releases/download/dados-v1/Por_venda_2026.xlsm
-Me manda essa URL aqui e eu modifico o HTML na hora — troco a tela de upload pelo carregamento automático e você sobe a versão nova substituindo o index.html.
-
-Pode ir fazendo. Qualquer dúvida no caminho me chama.
-
-1780856300886_image.png
-15:18
-Repositório criado. Agora clica em Pages no menu esquerdo (já aparece na tela).
-
-ok
-
-15:18
-Na tela do Pages:
-
-Source: Deploy from a branch
-Branch: main
-Folder: / (root)
-Clica em Save
-Feito isso, me manda print ou confirma. Aí passamos para subir o HTML e a planilha.
-
-1780856452470_image.png
-15:20
-Clica em Pages no menu esquerdo (está visível na lista).
-
-1780856505366_image.png
-15:21
-Perfeito — GitHub Pages ativado! Já está configurado em main / (root).
-
-Seu dashboard vai estar em:
-
-https://nevespng68.github.io/janela-bar-dashboard
-Próximo passo — Suba o HTML
-Volte para a página principal do repositório:
-
-Clica em "Code" no menu superior
-Clica em "Add file" → "Upload files"
-Arrasta o arquivo dashboard_janela_bar_MEDIA_HISTORICA_NEON_CARDS.html
-Antes de confirmar, renomeia para index.html
-Clica em "Commit changes"
-Me manda print quando subir.
-
-
-index.html
-html
-
-ja fiz isso....
-mas temos que alterar o html, pois esta fazendo o up load na minha maquina.
-
-15:22
-Certo — agora vamos subir a planilha como Release e depois modifico o HTML.
-
-Suba a planilha como Release
-No repositório, clica em "Code" (menu superior)
-Na sidebar direita, clica em "Releases"
-"Create a new release"
-Em "Choose a tag" digita dados-v1 e clica em "Create new tag"
-Title: Planilha Janela Bar
-Arrasta o arquivo Por_venda_2026.xlsm na área de anexos
-Clica em "Publish release"
-Quando publicar, me manda a URL da release ou um print. Aí eu já modifico o HTML na hora com a URL correta e você só substitui o index.html.
-
-1780856673987_image.png
-não entendi
-
-15:24
-Tá na tela certa. Preenche assim:
-
-1. Clica em "Tag: Select tag" → digita dados-v1 → clica em "Create new tag: dados-v1"
-
-2. Em "Release title" digita: Planilha Janela Bar
-
-3. Desce a página até a área de anexos e arrasta o arquivo Por_venda_2026.xlsm
-
-4. Clica em "Publish release"
-
-1780856838999_image.png
-o que é "dados-v1"
-
-15:27
-É só um nome/etiqueta que o GitHub usa para identificar essa versão da release. Pode chamar do que quiser — dados-v1 é só uma convenção.
-
-Não precisa se preocupar com isso — já está preenchido corretamente na tela.
-
-Agora arrasta o arquivo Por_venda_2026.xlsm na área "Attach binaries by dropping them here or selecting them" que aparece no final da tela.
-
-como subo o arquivo?
-
-15:28
-Clica diretamente na área:
-
-"Attach binaries by dropping them here or selecting them"
-
-Ela funciona como um botão — abre o explorador de arquivos do seu PC. Navega até onde está o Por_venda_2026.xlsm e seleciona ele.
-
-O upload pode demorar alguns minutos por conta dos 46MB.
-
-1780856975065_image.png
-15:29
-Vejo que subiu o index.html mas não a planilha .xlsm. Os Assets mostram só o HTML e os source codes automáticos do GitHub.
-
-Precisa editar essa release e anexar a planilha. Clica no ícone de lápis (✏️) no canto superior direito da release e anexa o Por_venda_2026.xlsm.
-
-apago o index
-
-15:30
-Não apaga não — o index.html na release não atrapalha nada.
-
-Clica no lápis (✏️) para editar a release e anexa a planilha .xlsm sem mexer no resto.
-
-1780857146722_image.png
-15:32
-Perfeito! Planilha subida — 43.9MB aparecendo nos Assets.
-
-A URL da sua planilha é exatamente:
-
-https://github.com/NevesPNG68/janela-bar-dashboard/releases/download/dados-v1/Por.venda_2026.xlsm
-Agora vou modificar o HTML para carregar automático por essa URL. Um momento.
-
-
-Executou 4 comandos, editou um arquivo
-Executou 4 comandos, editou um arquivo
-Now I need to refactor the load function to extract the buffer processing so both auto-load and manual load can use it:
-
-
-Executou 5 comandos
-Executou 5 comandos
-Agora vou adicionar a função _processBuffer que é chamada tanto pelo auto-load quanto pelo load manual:
-
-
-Editou 3 arquivos, executou um comando
-Editou 3 arquivos, executou um comando
-Now fix the closing of the _processBuffer function — remove the old reader.readAsArrayBuffer line:
-
-
-Executou 2 comandos, editou um arquivo
-Executou 2 comandos, editou um arquivo
-Now update the autoLoad function to properly call _processBuffer:
-
-
-Editou um arquivo, executou um comando
-Editou um arquivo, executou um comando
-Chaves balanceadas. Agora copia para output:
-
-
-Executou um comando, leu um arquivo
-Executou um comando, leu um arquivo
-Pronto! HTML modificado. Agora:
-
-O que mudou
-Ao abrir o dashboard, ele vai carregar a planilha automaticamente do GitHub — sem tela de upload. Se a conexão falhar, mostra a tela de upload manual como fallback.
-
-O que você precisa fazer agora
-1. Baixa o index.html acima
-
-2. No GitHub, vai no repositório → clica no arquivo index.html → clica no lápis (editar) → na verdade é mais fácil:
-
-Clica em "Add file" → "Upload files"
-Sobe o novo index.html
-O GitHub substitui automaticamente
-3. Acessa https://nevespng68.github.io/janela-bar-dashboard e testa
-
-Fluxo diário de atualização (a partir de agora)
-Quando atualizar a planilha:
-
-No GitHub, vai em Releases → dados-v1 → lápis (editar)
-Remove o arquivo antigo e sobe o novo
-Salva — pronto
-
-Index
-Código · HTML 
-continua com a tela de upload
-
-15:35
-É porque o fetch do GitHub Releases não funciona direto no navegador — o GitHub redireciona o download e isso causa erro de CORS.
-
-Precisamos usar um proxy. A solução mais simples é o jsDelivr — ele serve arquivos do GitHub sem problema de CORS.
-
-Mas tem um detalhe: o jsDelivr tem limite de 50MB por arquivo, e o seu tem 46MB. Fica no limite — pode funcionar ou não.
-
-Me confirma uma coisa antes de ajustar:
-
-O arquivo .xlsm tem macros VBA ou é só dados?
-
-Se for só dados, posso converter para .xlsx que comprime melhor e provavelmente fica abaixo de 50MB com folga. Se tiver macros, precisamos de outra abordagem.
-
-tem macro apenas
-
-15:35
-Então podemos salvar uma cópia sem macros só para o dashboard — a macro fica no seu PC, o dashboard lê os dados.
-
-O que você faz no seu PC
-Abre o Por_venda_2026.xlsm normalmente
-Clica em "Arquivo" → "Salvar como"
-Escolhe o formato "Pasta de Trabalho do Excel (.xlsx)"
-Salva como Por_venda_2026.xlsx
-Esse arquivo .xlsx vai ser menor — provavelmente entre 5MB e 20MB — e aí o jsDelivr consegue servir sem problema de CORS.
-
-Quando tiver o .xlsx salvo, me confirma o tamanho que ficou. Aí a gente sobe no GitHub e eu ajusto a URL no HTML.
-
-não... vai ficar muito trabalho ter que converter toda vez que subir
-
-15:36
-Faz sentido. Vamos resolver de outro jeito.
-
-O problema real é CORS — o GitHub Releases bloqueia fetch direto do navegador.
-
-Solução sem trabalho extra
-Ao invés de buscar o arquivo automaticamente, mantemos o upload manual mas sem tela de upload — o usuário clica num botão discreto no dashboard para carregar o arquivo do PC.
-
-Ou seja:
-
-Abre o dashboard → já mostra o dashboard vazio
-Um botão "Carregar Planilha" fixo no topo
-Você clica, seleciona o .xlsm do seu PC
-Carrega e pronto
-Sem tela de upload bloqueando, sem conversão, sem CORS.
-
-Outra opção — Cloudflare R2
-Você sobe o .xlsm lá uma vez, ele te dá uma URL pública sem CORS. Aí o auto-load funciona de verdade.
-
-Gratuito até 10GB. Mas tem configuração inicial de uns 15 minutos.
-
-Qual prefere?
-
-Botão discreto no topo — zero configuração, funciona agora
-Cloudflare R2 — auto-load real, 15 min de setup
-vamos testar
-
-15:37
-Qual das duas quer testar primeiro?
-
-1. Botão discreto — funciona agora, zero configuração
-
-2. Cloudflare R2 — auto-load real, 15 min de setup
-
-1
-
-15:38
-
-Executou 7 comandos, editou um arquivo, leu um arquivo
-Executou 7 comandos, editou um arquivo, leu um arquivo
-Pronto! O que mudou:
-
-Antes: abria uma tela de upload bloqueando tudo
-
-Agora: abre direto no dashboard → abre automaticamente o seletor de arquivo do PC → você seleciona o .xlsm → carrega
-
-O botão "Trocar arquivo" no topo continua funcionando para recarregar quando atualizar a planilha.
-
-Sobe no GitHub
-No repositório, vai em "Add file" → "Upload files"
-Sobe esse novo index.html
-Aguarda 2 minutos e acessa https://nevespng68.github.io/janela-bar-dashboard
-Me avisa o resultado.
-
-
-Index
-Código · HTML 
-
-
-
-
-
-Claude é uma IA e pode cometer erros. Por favor, verifique as respostas.
-
-
-raw
-Index · HTML
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -747,7 +118,7 @@ Index · HTML
   .lucro-bar-wrap{display:flex;align-items:center;gap:.5rem;margin-top:.4rem}
   .lucro-bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
   .lucro-bar-fill{height:5px;border-radius:3px;background:#4ade80}
- 
+
   /* ── AUDITORIA ── */
   .audit-wrap{display:none;min-height:100vh;background:var(--bg);padding:1.5rem 2rem 3rem;max-width:1700px;margin:0 auto}
   .audit-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
@@ -804,8 +175,8 @@ Index · HTML
     .audit-col{border-right:none;border-bottom:1px solid var(--border)}
     .audit-col:last-child{border-bottom:none}
   }
- 
- 
+
+
   .audit-result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin:0 0 1rem}
   .audit-result-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem}
   .audit-result-card.neg .audit-result-value{color:#ff6b6b}
@@ -826,8 +197,8 @@ Index · HTML
   .audit-analytic-table td.neg{color:#ff6b6b}
   .audit-analytic-table td.pos{color:#4ade80}
   .audit-analytic-empty{padding:1rem 1.2rem;color:var(--muted);font-size:.82rem}
- 
- 
+
+
   /* ── PADRÃO APROVADO DOS CARDS: BORDA SUPERIOR + NEON ÚNICO ── */
   .kpi-card,.fin-zone,.fin-kpi,.chart-card,.table-card,.audit-box,
   .audit-result-card,.audit-card,.audit-analytic-card{
@@ -871,16 +242,16 @@ Index · HTML
   .kpi-card:active::after,.fin-kpi:active::after,.chart-card:active::after,.table-card:active::after,
   .audit-box:active::after,.audit-result-card:active::after,.audit-card:active::after,.audit-analytic-card:active::after,
   .fin-zone:active::after{opacity:1}
- 
+
 </style>
 </head>
 <body>
- 
+
 <div id="upload-screen" style="display:none">
   <div class="upload-zone" id="drop-zone" style="display:none"></div>
   <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
 </div>
- 
+
 <!-- LOADING SCREEN -->
 <div id="loading-screen">
   <div class="ld-logo">JANELA <span>BAR</span></div>
@@ -897,7 +268,7 @@ Index · HTML
   <div class="ld-bar-wrap"><div class="ld-bar" id="ld-bar"></div></div>
   <div class="ld-step" id="ld-step">Lendo arquivo...</div>
 </div>
- 
+
 <div id="dashboard">
   <div class="topbar">
     <div class="topbar-logo">JANELA <span>BAR</span></div>
@@ -968,10 +339,10 @@ Index · HTML
       <span class="file-name" id="file-name-disp">nenhum arquivo</span>
     </div>
   </div>
- 
+
   <div class="main">
     <div class="kpi-row" id="kpi-row"></div>
- 
+
     <!-- RESULTADOS FINANCEIROS — lidos da aba MATRIZ ANALITICO -->
     <div class="section-title">Resultados Financeiros <span class="tag">MATRIZ ANAL&Iacute;TICO</span></div>
     <div class="fin-grid">
@@ -987,18 +358,18 @@ Index · HTML
         <div class="fin-kpi-row" style="grid-template-columns:1fr 1fr 1fr 1fr" id="fin-despesas"></div>
       </div>
     </div>
- 
+
     <!-- EVOLUÇÃO DE CUSTOS -->
     <div class="section-title">Evolu&ccedil;&atilde;o de Custos <span class="tag">CUSTOS</span></div>
     <div style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>Custos por M&ecirc;s (Total, Fixo, Fixo/Vari&aacute;vel, Vari&aacute;vel)</h3><div class="chart-wrap" style="position:relative;height:280px"><canvas id="c-custos"></canvas></div></div>
     </div>
- 
+
     <div class="section-title">Indicadores de Performance <span class="tag">KPIs</span></div>
     <div style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>Lucratividade · %CMV · MKP · Margem de Contribui&ccedil;&atilde;o · Efici&ecirc;ncia Operacional</h3><div class="chart-wrap" style="position:relative;height:300px"><canvas id="c-kpi-linha"></canvas></div></div>
     </div>
- 
+
     <!-- PROJEÇÃO DE RECEITA -->
     <div class="section-title">Proje&ccedil;&atilde;o de Receita <span class="tag">PROJE&Ccedil;&Atilde;O</span></div>
     <div id="proj-section" style="margin-bottom:1.5rem"></div>
@@ -1006,31 +377,31 @@ Index · HTML
       <div class="chart-card"><h3>L&iacute;quido &amp; Bruto por M&ecirc;s</h3><div class="chart-wrap"><canvas id="c-mensal" height="240"></canvas></div></div>
       <div class="chart-card"><h3>Distribui&ccedil;&atilde;o por Canal</h3><div class="chart-wrap"><canvas id="c-canal" height="240"></canvas></div></div>
     </div>
- 
+
     <div class="section-title">Categorias &amp; Pagamentos <span class="tag">MIX</span></div>
     <div class="chart-grid" style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>Receita L&iacute;quida por Categoria</h3><div class="chart-wrap"><canvas id="c-grupo" height="260"></canvas></div></div>
       <div class="chart-card"><h3>Forma de Pagamento</h3><div class="chart-wrap"><canvas id="c-pgto" height="260"></canvas></div></div>
     </div>
- 
+
     <div class="section-title">Comportamento <span class="tag">OPERACIONAL</span></div>
     <div class="chart-grid-3c" style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>L&iacute;quido por Dia da Semana</h3><div class="chart-wrap"><canvas id="c-dia" height="240"></canvas></div></div>
       <div class="chart-card"><h3>Hor&aacute;rio de Pico</h3><div class="chart-wrap"><canvas id="c-hora" height="240"></canvas></div></div>
       <div class="chart-card"><h3>Evolu&ccedil;&atilde;o do Ticket M&eacute;dio</h3><div class="chart-wrap"><canvas id="c-tkt" height="240"></canvas></div></div>
     </div>
- 
+
     <div class="section-title">Quantidade de Vendas <span class="tag">VOLUME</span></div>
     <div class="chart-grid" style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>Vendas por M&ecirc;s &amp; Dia da Semana</h3><div class="chart-wrap"><canvas id="c-vendas-heatmap" height="260"></canvas></div></div>
       <div class="chart-card"><h3>Acumulo de Vendas por Hora</h3><div class="chart-wrap"><canvas id="c-vendas-hora" height="260"></canvas></div></div>
     </div>
- 
+
     <div class="section-title">Faturamento por Semana <span class="tag">SEMANAL</span></div>
     <div style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>Receita L&iacute;quida por Semana do M&ecirc;s</h3><div class="chart-wrap" style="position:relative;height:260px"><canvas id="c-semana"></canvas></div></div>
     </div>
- 
+
     <div class="section-title">Top Produtos <span class="tag" id="prod-tag">0 produtos</span></div>
     <div class="table-card">
       <div class="table-header">
@@ -1045,13 +416,13 @@ Index · HTML
       </div>
     </div>
   </div>
- 
+
   <div id="auditoria-screen" class="audit-wrap">
     <div class="audit-top">
       <div class="section-title" style="margin-bottom:0">Auditoria de Produtos <span class="tag">VENDAS × ENTRADAS</span></div>
       <button class="reload-btn" onclick="fecharAuditoria()">&#8592; Voltar ao Dashboard</button>
     </div>
- 
+
     <div class="audit-toolbar">
       <div class="audit-filter">
         <label>Mês início</label>
@@ -1066,7 +437,7 @@ Index · HTML
         <select id="aud-ano"></select>
       </div>
     </div>
- 
+
     <div class="audit-box">
       <div class="section-title" style="font-size:1rem;margin-bottom:.8rem">Produtos para Auditar</div>
       <div id="audit-lista" class="audit-lines"></div>
@@ -1075,34 +446,34 @@ Index · HTML
         <button class="upload-btn" type="button" onclick="auditarProdutos()">GERAR AUDITORIA</button>
       </div>
     </div>
- 
+
     <div id="audit-resumo"></div>
     <div id="audit-cards"></div>
   </div>
- 
+
   <div class="footer">JANELA BAR PARANAGU&Aacute; &middot; Dashboard de Vendas &middot; Aba: VendasOperador</div>
 </div>
- 
+
 <script>
 // Colunas da aba VendasOperador (base 0):
 // 6=Tipo venda, 8=Produto, 9=Quantidade, 12=Total R$
 // 13=Forma de Pagamento, 16=Grupo, 17=DIA SEMANA
 // 19=FAIXA DE HORA, 20=Mes/Ano, 21=Liquido, 22=Qt.VENDAS
- 
+
 let allData=[], filteredData=[], charts={};
 let matrizData=[]; // dados da aba MATRIZ ANALITICO
 let projecaoData=null; // dados da aba Projeção
 let dadosDespesas=[]; // dados da aba Despesas para auditoria
- 
+
 const DIAS  = ["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
 const HORAS = ["00:00 - 01:00","01:00 - 02:00","02:00 - 03:00","03:00 - 04:00","15:00 - 16:00","16:00 - 17:00","17:00 - 18:00","18:00 - 19:00","19:00 - 20:00","20:00 - 21:00","21:00 - 22:00","22:00 - 23:00","23:00 - 00:00"];
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const PAL   = ["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00","#ff00cc","#00ffaa","#ff8c00","#7df9ff","#ff3399","#ccff00","#9b59b6"];
- 
+
 const R  = v => "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const RK = v => v>=1e6?"R$ "+(v/1e6).toFixed(1)+"M":v>=1e3?"R$ "+(v/1e3).toFixed(0)+"K":"R$ "+Math.round(v);
 const NB = v => Math.round(v||0).toLocaleString("pt-BR");
- 
+
 function cOpts(){
   return {
     responsive:true, maintainAspectRatio:false,
@@ -1117,9 +488,9 @@ function cOpts(){
     }
   };
 }
- 
- 
- 
+
+
+
 // UPLOAD MANUAL (fallback)
 (function(){
   const inp=document.getElementById("file-input");
@@ -1132,7 +503,7 @@ function cOpts(){
   // Mostra seletor de arquivo automaticamente ao carregar a página
   setTimeout(()=>{ document.getElementById('file-input').click(); }, 300);
 })();
- 
+
 function setProgress(pct, step){
   const circumference = 2 * Math.PI * 70;
   const p = Math.min(100, Math.max(0, pct));
@@ -1145,10 +516,10 @@ function setProgress(pct, step){
   if(bar)    bar.style.width = p + "%";
   if(step && lbl) lbl.textContent = step;
 }
- 
+
 // Executa fn após o browser ter pintado o frame atual
 function nextFrame(fn){ requestAnimationFrame(()=>setTimeout(fn,0)); }
- 
+
 function load(file){
   document.getElementById("file-name-disp").textContent = file.name;
   document.getElementById("upload-screen").style.display = "none";
@@ -1158,7 +529,7 @@ function load(file){
   reader.onload = e => { _processBuffer(e.target.result); };
   reader.readAsArrayBuffer(file);
 }
- 
+
 function _processBuffer(buffer){
     nextFrame(()=>{
       setProgress(12, "Decodificando planilha...");
@@ -1166,17 +537,17 @@ function _processBuffer(buffer){
         let wb;
         try{ wb = XLSX.read(buffer,{type:"array"}); }
         catch(err){ _loadErr(err); return; }
- 
+
         const norm = s => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");
         const sn = wb.SheetNames.find(n=>norm(n)==="vendasoperador") || wb.SheetNames.find(n=>norm(n).includes("venda"));
         if(!sn){ _loadErr(new Error("Aba VendasOperador nao encontrada!\nAbas: "+wb.SheetNames.join(", "))); return; }
- 
+
         // Etapa 2: ler vendas
         setProgress(28, "Lendo vendas...");
         nextFrame(()=>{
           const raw = XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:""});
           if(raw.length<2){ _loadErr(new Error("Planilha vazia!")); return; }
- 
+
           // Etapa 3: processar registros
           setProgress(45, "Processando " + (raw.length-1) + " registros...");
           nextFrame(()=>{
@@ -1197,9 +568,9 @@ function _processBuffer(buffer){
               qt_final:  parseFloat(r[26])||0,
               quinzena:  String(r[24]||"").trim(),
             })).filter(r=>r.liquido!==0);
- 
+
             if(!allData.length){ _loadErr(new Error("Nenhum dado valido. Verifique a aba VendasOperador.")); return; }
- 
+
             // Etapa 4: despesas / entradas para auditoria
             const snD = wb.SheetNames.find(n=>norm(n)==="despesas" || norm(n).includes("despesa"));
             dadosDespesas = [];
@@ -1216,7 +587,7 @@ function _processBuffer(buffer){
                 if(item){ dadosDespesas.push({mes,ano,qtd,item,fornecedor,total}); }
               }
             }
- 
+
             // Etapa 5: matriz analítico
             setProgress(62, "Lendo matriz analítica...");
             nextFrame(()=>{
@@ -1245,7 +616,7 @@ function _processBuffer(buffer){
                   }
                 }
               }
- 
+
               // Etapa 6: projeção
               setProgress(78, "Calculando projeção...");
               nextFrame(()=>{
@@ -1280,13 +651,13 @@ function _processBuffer(buffer){
                     projecaoData={mesProj,q1Atual,q2Atual,totalAcum,fatorMax,fatorMin,fatorMed,projMax,projMin,projMed,projMediaGeral,historico};
                   }
                 }
- 
+
                 // Etapa 7: filtros
                 setProgress(90, "Montando filtros...");
                 nextFrame(()=>{
                   populateFilters();
                   audPopulateFiltros();
- 
+
                   // Etapa 8: renderizar
                   setProgress(97, "Renderizando dashboard...");
                   nextFrame(()=>{
@@ -1305,14 +676,14 @@ function _processBuffer(buffer){
       });
     });
 }
- 
+
 function _loadErr(err){
   document.getElementById("loading-screen").style.display="none";
   document.getElementById("upload-screen").style.display="flex";
   alert("Erro: "+err.message);
   console.error(err);
 }
- 
+
 // FILTERS
 function sortMes(arr){
   return arr.sort((a,b)=>{
@@ -1370,7 +741,7 @@ function applyFilters(){
   renderKPIs();renderFinanceiro();renderProjecao();renderCharts();renderTable();
   requestAnimationFrame(applyNeonCards);
 }
- 
+
 // ── MULTI-SELECT GENÉRICO ──
 // Usado por: grupo, mes, dia, produto
 function fillMs(key, vals){
@@ -1435,15 +806,15 @@ document.addEventListener("click",e=>{
     if(dd&&btn&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display="none";
   });
 });
- 
+
 // grupo — usa o mesmo sistema genérico
 function getSelectedGrupos(){ return getMs("grupo"); }
 function toggleGrupoDropdown(){ toggleMsDropdown("grupo"); }
 function toggleGrupoAll(){ clearMs("grupo"); }
 function toggleGrupoOpt(el){ toggleMsOpt(el); }
- 
- 
- 
+
+
+
 // ── PADRÃO VISUAL DOS CARDS: cores neon únicas, sem repetição ──
 function neonCardColor(index){
   // Golden angle: distribui os tons pelo círculo cromático sem repetir visualmente.
@@ -1487,7 +858,7 @@ function applyNeonCards(){
     card.style.setProperty('--kpi-color', cor.css);
   });
 }
- 
+
 // KPIs
 function renderKPIs(){
   const fat  = filteredData.reduce((s,d)=>s+d.total,0);
@@ -1499,7 +870,7 @@ function renderKPIs(){
   const nProd= new Set(filteredData.map(d=>d.produto)).size;
   document.getElementById("kpi-row").innerHTML=[
     {l:"Receita L\u00edquida",v:R(liq),  s:R(fat)+" bruto",         c:"var(--accent)", i:"&#128176;"},
- 
+
     {l:"N\u00ba de Vendas",   v:NB(nVen),s:NB(filteredData.length)+" registros", c:"#60a5fa", i:"&#127919;"},
     {l:"Ticket M\u00e9dio",   v:tkt>0?R(tkt):"\u2014", s:"l\u00edquido / vendas", c:"#a78bfa", i:"&#127991;"},
     {l:"Itens Vendidos",       v:NB(itens),s:nProd+" produtos distintos", c:"var(--accent2)",i:"&#128230;"},
@@ -1520,17 +891,17 @@ function renderKPIs(){
     })(),
   ].map(k=>`<div class="kpi-card" style="--kpi-color:${k.c}"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div><div class="kpi-icon">${k.i}</div></div>`).join("");
 }
- 
+
 // ── RESULTADOS FINANCEIROS (MATRIZ ANALITICO) ──
 function renderFinanceiro(){
   const finReceita=document.getElementById("fin-receita");
   const finDespesas=document.getElementById("fin-despesas");
   if(!finReceita||!finDespesas)return;
- 
+
   // Filtra matrizData pelos meses/anos selecionados
   const ano=document.getElementById("f-ano").value;
   const mesesSel=getMs("mes");
- 
+
   let rows=matrizData;
   if(ano){
     rows=rows.filter(r=>{
@@ -1544,13 +915,13 @@ function renderFinanceiro(){
     const normMes=s=>s.trim().toLowerCase();
     rows=rows.filter(r=>mesesSel.some(m=>normMes(m)===normMes(r.mes)));
   }
- 
+
   if(!rows.length){
     finReceita.innerHTML=`<div style="color:var(--muted);font-size:.8rem;grid-column:1/-1;text-align:center;padding:1rem">Sem dados financeiros para o período selecionado.<br><small>Verifique se a aba MATRIZ ANALITICO está preenchida.</small></div>`;
     finDespesas.innerHTML="";
     return;
   }
- 
+
   // Agrega
   const sum=(key)=>rows.reduce((s,r)=>s+(r[key]||0),0);
   // Receita vem do VendasOperador (col V — líquido), consistente com os filtros do topo
@@ -1561,25 +932,25 @@ function renderFinanceiro(){
   const custoGeral=sum("custoGeral");
   const custoVariavel=custoGeral-totalFixo;
   const cmv=sum("cmv");
- 
+
   // MKP e Margem: média ponderada pela receita da Matriz (para manter proporção dos meses)
   const totalRec=rows.reduce((s,r)=>s+r.receita,0);
   const mkpMedio=totalRec>0 ? rows.reduce((s,r)=>s+(r.mkp*r.receita),0)/totalRec : rows.reduce((s,r)=>s+r.mkp,0)/rows.length;
   const margemMedia=totalRec>0 ? rows.reduce((s,r)=>s+(r.margem*r.receita),0)/totalRec : rows.reduce((s,r)=>s+r.margem,0)/rows.length;
   const pctCmvMedio=totalRec>0 ? rows.reduce((s,r)=>s+(r.pctCmv*r.receita),0)/totalRec : rows.reduce((s,r)=>s+r.pctCmv,0)/rows.length;
- 
+
   // Lucro: somar Luc/Prej (AR col 43) mas se não há receita é só despesa
   const lucro=rows.reduce((s,r)=>s+r.lucPrej,0);
   const pctLucMedio=receita>0 ? lucro/receita : 0;
- 
+
   const R=v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
   const RK=v=>v>=1e6?"R$ "+(v/1e6).toFixed(1)+"M":v>=1e3?"R$ "+(v/1e3).toFixed(0)+"K":"R$ "+Math.round(v);
   const Pct=v=>(v*100).toFixed(1)+"%";
- 
+
   function card(label,val,sub,icon){
     return `<div class="fin-kpi"><div class="fin-kpi-label">${label}</div><div class="fin-kpi-val">${val}</div><div class="fin-kpi-sub">${sub}</div><div class="fin-kpi-icon">${icon}</div></div>`;
   }
- 
+
   // RECEITA cards
   finReceita.innerHTML=
     card("Receita Total (Líquida)","R$ "+receita.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0}),"soma dos itens — col V (VendasOperador)","&#128200;") +
@@ -1669,7 +1040,7 @@ function renderFinanceiro(){
         <div class="fin-kpi-sub">${ilLabel} — Lucro ÷ Receita</div>
         <div class="fin-kpi-icon">&#128269;</div></div>`;
     })();
- 
+
   // ── MÉDIA DA SÉRIE ──
   {
     const n = rows.length;
@@ -1685,13 +1056,13 @@ function renderFinanceiro(){
     const mediaCmvPct        = pctCmvMedio;
     const mediaMKP           = mkpMedio;
     const mediaMargem        = margemMedia;
- 
+
     const RKL = v => {
       const abs = Math.abs(v);
       const fmt = abs>=1e6 ? (abs/1e6).toFixed(1)+"M" : abs>=1e3 ? (abs/1e3).toFixed(0)+"K" : Math.round(abs).toString();
       return (v<0?"−":"")+"R$ "+fmt;
     };
- 
+
     // ── SÉRIE HISTÓRICA DO ANO (quando 1 mês específico selecionado) ──
     // Calcula média de todos os outros meses do mesmo ano (excluindo o mês selecionado)
     const mesesSel = getMs("mes");
@@ -1699,7 +1070,7 @@ function renderFinanceiro(){
     let histRows = [];
     let histLabel = "";
     let mostrarComparativo = false;
- 
+
     if(mesesSel.length === 1 && anoSel) {
       // CORREÇÃO: histórico deve considerar somente meses ANTERIORES do mesmo ano.
       // Antes, o código pegava todos os outros meses do ano, o que incluía meses posteriores
@@ -1719,13 +1090,13 @@ function renderFinanceiro(){
       const mesSelecionado = mesesSel[0];
       const selMesNum = mesNum(mesSelecionado);
       const selAnoNum = parseInt(anoSel||"0");
- 
+
       histRows = matrizData.filter(r => {
         const y = anoNum(r.mes);
         const m = mesNum(r.mes);
         return y === selAnoNum && m > 0 && selMesNum > 0 && m < selMesNum;
       });
- 
+
       if(histRows.length > 0) {
         mostrarComparativo = true;
         histLabel = "Média histórica "+anoSel+" ("+histRows.length+" "+(histRows.length===1?"mês anterior":"meses anteriores")+")";
@@ -1733,7 +1104,7 @@ function renderFinanceiro(){
     } else if(mesesSel.length === 0 && anoSel) {
       // Sem mês selecionado — label normal
     }
- 
+
     // Calcula médias históricas
     const hn = histRows.length;
     const hSum = key => histRows.reduce((s,r)=>s+(r[key]||0),0);
@@ -1752,7 +1123,7 @@ function renderFinanceiro(){
     const hMargem        = hRecTotal > 0 ? histRows.reduce((s,r)=>s+(r.margem*r.receita),0) / hRecTotal : 0;
     // Receita histórica média pela Matriz (para comparar mesma base)
     const hReceitaMedia  = hn > 0 ? hSum("receita") / hn : 0;
- 
+
     // Função de comparativo: seta + % diferença vs histórico
     // "melhor" = maior é melhor para receita/lucro/mkp/margem; menor é melhor para custos/cmv
     function delta(atual, hist, maiorEMelhor=true) {
@@ -1764,7 +1135,7 @@ function renderFinanceiro(){
       const seta = subiu ? "▲" : "▼";
       return `<span style="font-size:.62rem;color:${cor};margin-left:3px;font-weight:700">${seta}${Math.abs(pct).toFixed(1)}%</span>`;
     }
- 
+
     const itens = [
       { label:"Receita",                    val: RKL(mediaReceita),                          hist: RKL(hReceitaMedia),                         deltaH: delta(mediaReceita, hReceitaMedia, true),   cor:"#86efac" },
       { label:"Custo<br>Fixo",             val: RKL(mediaCustoFixo),                        hist: RKL(hCustoFixo),                            deltaH: delta(mediaCustoFixo, hCustoFixo, false),   cor:"#fbbf24" },
@@ -1779,14 +1150,14 @@ function renderFinanceiro(){
       { label:"MKP",                       val: mediaMKP>0?"×"+mediaMKP.toFixed(2):"—",     hist: hMKP>0?"×"+hMKP.toFixed(2):"—",            deltaH: delta(mediaMKP, hMKP, true),                cor:"#f5a623" },
       { label:"Margem de<br>Contribuição", val: (mediaMargem*100).toFixed(1)+"%",           hist: (hMargem*100).toFixed(1)+"%",               deltaH: delta(mediaMargem, hMargem, true),           cor:"#a78bfa" },
     ];
- 
+
     const serieLabel = n > 1 ? "Média de "+n+" meses" : n===1 ? mesesSel[0]||"1 mês" : "Sem dados";
- 
+
     // Monta a grade — se comparativo ativo, mostra 3 linhas por coluna: valor atual, delta, média histórica
     const cols = itens.length;
     document.getElementById("fin-media-serie").innerHTML =
       '<div style="border:1px solid #2a2a3e;border-radius:10px;overflow:hidden;background:rgba(0,0,0,.25)">' +
- 
+
         // ── Cabeçalho ──
         '<div style="padding:.6rem 1rem .5rem;border-bottom:1px solid #2a2a3e;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">' +
           '<span style="font-family:var(--font-head);font-size:.85rem;letter-spacing:.1em;color:#c0c0d8">&#9656; MÉDIA DA SÉRIE</span>' +
@@ -1795,7 +1166,7 @@ function renderFinanceiro(){
             ? '<span style="font-size:.62rem;background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.25);padding:2px 8px;border-radius:20px;letter-spacing:.04em;font-weight:600">&#128200; vs meses anteriores '+anoSel+'</span>'
             : '') +
         '</div>' +
- 
+
         // ── Linha de valores do período selecionado ──
         '<div style="overflow-x:hidden;overflow-y:hidden;max-width:100%">' +
           '<div style="display:grid;grid-template-columns:repeat('+cols+', minmax(0,1fr));width:100%">' +
@@ -1810,7 +1181,7 @@ function renderFinanceiro(){
             ).join("") +
           '</div>' +
         '</div>' +
- 
+
         // ── Linha histórica (só quando comparativo ativo) ──
         (mostrarComparativo
           ? '<div style="border-top:1px dashed #2a2a3e;background:rgba(34,211,238,.03)">' +
@@ -1827,10 +1198,10 @@ function renderFinanceiro(){
               '</div>' +
             '</div>'
           : '') +
- 
+
       '</div>';
   }
- 
+
   // ── PONTO DE EQUILÍBRIO ──
   // PE Contábil  = Custo Fixo Total (AG) ÷ Margem de Contribuição (AM)
   // PE Financeiro= (Custo Fixo - Depreciação) ÷ Margem de Contribuição  → usamos o mesmo AG por não termos depreciação separada
@@ -1839,7 +1210,7 @@ function renderFinanceiro(){
   const peCoberto = (pe > 0 && receita > 0) ? Math.min(receita / pe, 1) : 0;
   const peAcimaPct = receita > 0 && pe > 0 ? ((receita - pe) / pe * 100) : 0;
   const peAtingido = receita >= pe && pe > 0;
- 
+
   // Helper: card com badge % do total + barra de progresso
   function cardPct(label, val, sub, icon, valor, total, cor){
     const pct = total > 0 ? (valor / total * 100) : 0;
@@ -1860,7 +1231,7 @@ function renderFinanceiro(){
       <div class="fin-kpi-icon">${icon}</div>
     </div>`;
   }
- 
+
   // DESPESAS cards
   finDespesas.innerHTML=
     cardPct("Custo Fixo",      RK(custoFixo),    "col AE — fixo puro",       "&#127968;", custoFixo,    custoGeral, "#f5a623") +
@@ -1928,38 +1299,38 @@ function renderFinanceiro(){
       </div>`;
     })();
 }
- 
+
 // ── PROJEÇÃO DE RECEITA ──
 function renderProjecao(){
   const el=document.getElementById("proj-section");
   if(!el)return;
- 
+
   if(!projecaoData||projecaoData.historico.length===0){
     el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.4rem;color:var(--muted);font-size:.82rem;text-align:center">
       Aba Proje&ccedil;&atilde;o n&atilde;o encontrada ou sem dados hist&oacute;ricos suficientes.</div>`;
     return;
   }
- 
+
   const p=projecaoData;
   const RFmt=v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
   const RK=v=>v>=1e6?"R$ "+(v/1e6).toFixed(2)+"M":v>=1e3?"R$ "+(v/1e3).toFixed(1)+"K":"R$ "+Math.round(v).toLocaleString("pt-BR");
- 
+
   // Receita acumulada real = sempre dos dados COMPLETOS (allData), ignorando filtros
   // A projeção é do mês atual da planilha — filtros de período não devem afetá-la
   const recReal=p.totalAcum>0 ? p.totalAcum
     : (p.mesProj ? allData.filter(d=>d.mes.toLowerCase()===p.mesProj.toLowerCase()).reduce((s,d)=>s+d.liquido,0) : 0);
- 
+
   // Progresso real vs projeção média
   const progPct=p.projMed>0?Math.min(recReal/p.projMed*100,100).toFixed(1):0;
   const progCor=progPct>=100?"#4ade80":progPct>=70?"#fbbf24":"#f5a623";
- 
+
   // 3 cenários
   const cenarios=[
     {label:"Cenário Pessimista", sublabel:"Menor Fator histórico", fator:p.fatorMin, valor:p.projMin, cor:"#f87171", bg:"rgba(248,113,113,.07)", borda:"rgba(248,113,113,.25)", icone:"&#8595;"},
     {label:"Projeção Média",     sublabel:"Fator Médio histórico",  fator:p.fatorMed, valor:p.projMed, cor:"#f5a623", bg:"rgba(245,166,35,.07)",  borda:"rgba(245,166,35,.25)",  icone:"&#9670;"},
     {label:"Cenário Otimista",   sublabel:"Maior Fator histórico",  fator:p.fatorMax, valor:p.projMax, cor:"#4ade80", bg:"rgba(74,222,128,.07)",  borda:"rgba(74,222,128,.25)",  icone:"&#8593;"},
   ];
- 
+
   const cenariosHtml=cenarios.map(c=>`
     <div style="background:${c.bg};border:1px solid ${c.borda};border-radius:10px;padding:1rem 1.2rem;flex:1;min-width:180px;position:relative;overflow:hidden">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${c.cor}"></div>
@@ -1968,7 +1339,7 @@ function renderProjecao(){
       <div style="font-size:.68rem;color:var(--muted);margin-top:.25rem">${c.sublabel} &nbsp;<span style="color:${c.cor};font-weight:600">×${c.fator.toFixed(2)}</span></div>
       <div style="font-size:1.6rem;position:absolute;right:.8rem;top:50%;transform:translateY(-50%);opacity:.12">${c.icone}</div>
     </div>`).join("");
- 
+
   // Card Projeção Média Geral — fórmula N5: (projMax + projMed) / 2
   const mediaGeralHtml=p.projMediaGeral>0?`
     <div style="padding:1.2rem 1.4rem;border-bottom:1px solid rgba(0,207,255,.25);background:linear-gradient(135deg,#003d4d 0%,#001f2e 100%);position:relative;overflow:hidden">
@@ -1985,10 +1356,10 @@ function renderProjecao(){
         </div>
       </div>
     </div>`:"";
- 
+
   el.innerHTML=`
   <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden">
- 
+
     <!-- Header -->
     <div style="padding:1rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem">
       <div>
@@ -2010,15 +1381,15 @@ function renderProjecao(){
         </div>
       </div>
     </div>
- 
+
     <!-- Projeção Média Geral — N5 = (projMax + projMed) / 2 -->
     ${mediaGeralHtml}
- 
+
     <!-- 3 cenários -->
     <div style="padding:1.2rem 1.4rem;display:flex;gap:.85rem;flex-wrap:wrap">
       ${cenariosHtml}
     </div>
- 
+
     <!-- Progresso real do mês -->
     ${recReal>0?`
     <div style="padding:0 1.4rem 1.2rem">
@@ -2038,15 +1409,15 @@ function renderProjecao(){
     </div>`:""}
   </div>`;
 }
- 
+
 // CHARTS
 const dc=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};
 function renderCharts(){renderMensal();renderCanal();renderGrupo();renderPgto();renderDia();renderHora();renderTkt();renderVendas();renderSemana();renderCustos();renderKpiLinha();}
- 
+
 function getMeses(){
   return sortMes([...new Set(filteredData.map(d=>d.mes))].filter(Boolean));
 }
- 
+
 function renderMensal(){
   dc("mensal");
   const ms=getMeses();
@@ -2064,7 +1435,7 @@ function renderMensal(){
     ]},options:o
   });
 }
- 
+
 function renderCanal(){
   dc("canal");
   const by={};filteredData.forEach(d=>{by[d.tipo]=(by[d.tipo]||0)+d.liquido;});
@@ -2078,7 +1449,7 @@ function renderCanal(){
     }}
   });
 }
- 
+
 function renderGrupo(){
   dc("grupo");
   const by={};filteredData.forEach(d=>{by[d.grupo]=(by[d.grupo]||0)+d.liquido;});
@@ -2089,7 +1460,7 @@ function renderGrupo(){
     type:"bar",data:{labels:s.map(([k])=>k),datasets:[{label:"L\u00edquido",data:s.map(([,v])=>v),backgroundColor:PAL.map(c=>c+"cc"),borderRadius:4}]},options:o
   });
 }
- 
+
 function renderPgto(){
   dc("pgto");
   const by={};filteredData.forEach(d=>{by[d.pgto]=(by[d.pgto]||0)+d.liquido;});
@@ -2103,7 +1474,7 @@ function renderPgto(){
     }}
   });
 }
- 
+
 function renderDia(){
   dc("dia");
   const by={};DIAS.forEach(d=>by[d]=0);
@@ -2115,7 +1486,7 @@ function renderDia(){
     datasets:[{label:"L\u00edquido",data:V,backgroundColor:V.map(v=>v===mx?"#f5a623":"#f5a62355"),borderColor:V.map(v=>v===mx?"#f5a623":"#f5a62388"),borderWidth:1,borderRadius:4}]},options:o
   });
 }
- 
+
 function renderHora(){
   dc("hora");
   const by={};
@@ -2128,7 +1499,7 @@ function renderHora(){
     datasets:[{label:"L\u00edquido",data:V,borderColor:"#f5a623",backgroundColor:"rgba(245,166,35,.15)",borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.4,fill:true}]},options:o
   });
 }
- 
+
 function renderTkt(){
   dc("tkt");
   const ms=getMeses();
@@ -2145,20 +1516,20 @@ function renderTkt(){
     datasets:[{label:"Ticket M\u00e9dio",data:V,borderColor:"#a78bfa",backgroundColor:"rgba(167,139,250,.15)",borderWidth:2.5,pointRadius:5,pointHoverRadius:7,tension:.3,fill:true}]},options:o
   });
 }
- 
- 
+
+
 // VENDAS CHARTS
 function renderVendas(){
   renderVendasHeatmap();
   renderVendasHora();
 }
- 
+
 function renderVendasHeatmap(){
   dc("vendas-heatmap");
   const ms=getMeses();
   const DIAS_LBL=["Seg","Ter","Qua","Qui","Sex","S\u00e1b","Dom"];
   const DIAS_FULL=["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
- 
+
   const datasets=DIAS_FULL.map((dia,i)=>({
     label:DIAS_LBL[i],
     data:ms.map(m=>filteredData.filter(d=>d.mes===m&&d.dia===dia&&d.qtven>0).reduce((s,d)=>s+d.qtven,0)),
@@ -2166,21 +1537,21 @@ function renderVendasHeatmap(){
     borderColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i],
     borderWidth:1,borderRadius:4,
   }));
- 
+
   const o=cOpts();
   o.plugins.legend.display=true;
   o.scales.x.stacked=true;
   o.scales.y.stacked=true;
   o.scales.y.ticks.callback=v=>NB(v);
   o.plugins.tooltip.callbacks.label=ctx=>` ${ctx.dataset.label}: ${NB(ctx.raw)} vendas`;
- 
+
   charts["vendas-heatmap"]=new Chart(document.getElementById("c-vendas-heatmap").getContext("2d"),{
     type:"bar",
     data:{labels:ms,datasets},
     options:o
   });
 }
- 
+
 function renderVendasHora(){
   dc("vendas-hora");
   const by={};
@@ -2190,12 +1561,12 @@ function renderVendasHora(){
   const horas=Object.keys(by).sort();
   const vals=horas.map(h=>by[h]);
   const maxV=Math.max(...vals);
- 
+
   const o=cOpts();
   o.plugins.legend.display=false;
   o.scales.y.ticks.callback=v=>NB(v);
   o.plugins.tooltip.callbacks.label=ctx=>` ${NB(ctx.raw)} vendas`;
- 
+
   // gradient colors by intensity
   const colors=vals.map(v=>{
     const t=v/maxV;
@@ -2205,7 +1576,7 @@ function renderVendasHora(){
     if(t>0.2)return"#a78bfa";
     return"#606080";
   });
- 
+
   charts["vendas-hora"]=new Chart(document.getElementById("c-vendas-hora").getContext("2d"),{
     type:"bar",
     data:{
@@ -2223,19 +1594,19 @@ function renderVendasHora(){
     options:o
   });
 }
- 
+
 // VENDAS CHARTS
 function renderVendas(){
   renderVendasHeatmap();
   renderVendasHora();
 }
- 
+
 function renderVendasHeatmap(){
   dc("vendas-heatmap");
   const ms=getMeses();
   const DIAS_LBL=["Seg","Ter","Qua","Qui","Sex","S\u00e1b","Dom"];
   const DIAS_FULL=["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
- 
+
   const datasets=DIAS_FULL.map((dia,i)=>({
     label:DIAS_LBL[i],
     data:ms.map(m=>filteredData.filter(d=>d.mes===m&&d.dia===dia&&d.qtven>0).reduce((s,d)=>s+d.qtven,0)),
@@ -2243,21 +1614,21 @@ function renderVendasHeatmap(){
     borderColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i],
     borderWidth:1,borderRadius:4,
   }));
- 
+
   const o=cOpts();
   o.plugins.legend.display=true;
   o.scales.x.stacked=true;
   o.scales.y.stacked=true;
   o.scales.y.ticks.callback=v=>NB(v);
   o.plugins.tooltip.callbacks.label=ctx=>` ${ctx.dataset.label}: ${NB(ctx.raw)} vendas`;
- 
+
   charts["vendas-heatmap"]=new Chart(document.getElementById("c-vendas-heatmap").getContext("2d"),{
     type:"bar",
     data:{labels:ms,datasets},
     options:o
   });
 }
- 
+
 function renderVendasHora(){
   dc("vendas-hora");
   const by={};
@@ -2267,12 +1638,12 @@ function renderVendasHora(){
   const horas=Object.keys(by).sort();
   const vals=horas.map(h=>by[h]);
   const maxV=Math.max(...vals);
- 
+
   const o=cOpts();
   o.plugins.legend.display=false;
   o.scales.y.ticks.callback=v=>NB(v);
   o.plugins.tooltip.callbacks.label=ctx=>` ${NB(ctx.raw)} vendas`;
- 
+
   // gradient colors by intensity
   const colors=vals.map(v=>{
     const t=v/maxV;
@@ -2282,7 +1653,7 @@ function renderVendasHora(){
     if(t>0.2)return"#a78bfa";
     return"#606080";
   });
- 
+
   charts["vendas-hora"]=new Chart(document.getElementById("c-vendas-hora").getContext("2d"),{
     type:"bar",
     data:{
@@ -2300,7 +1671,7 @@ function renderVendasHora(){
     options:o
   });
 }
- 
+
 // SEMANA
 function renderSemana(){
   dc("semana");
@@ -2320,16 +1691,16 @@ function renderSemana(){
       borderRadius:4,
     };
   }).filter(Boolean);
- 
+
   // barThickness dinâmico: divide o espaço disponível pelo nº de grupos × datasets
   const nMeses = ms.length||1;
   const nDS    = datasets.length||1;
   const containerW = (document.getElementById("c-semana")||{}).parentElement?.offsetWidth || 800;
   const spacePerMes = (containerW - 60) / nMeses;     // 60px reservado pro eixo Y
   const bt = Math.max(4, Math.floor(spacePerMes / nDS) - 3);
- 
+
   datasets.forEach(d=>d.barThickness=bt);
- 
+
   const o=cOpts();
   o.responsive=true;
   o.maintainAspectRatio=false;
@@ -2341,12 +1712,12 @@ function renderSemana(){
     options:o
   });
 }
- 
+
 // TABLE
 function renderCustos(){
   const ctx=document.getElementById("c-custos");
   if(!ctx)return;
- 
+
   // Filtra matrizData pelos mesmos filtros de Ano e Mês
   const ano=document.getElementById("f-ano").value;
   const mesesSel=getMs("mes");
@@ -2362,7 +1733,7 @@ function renderCustos(){
     const normMes=s=>s.trim().toLowerCase();
     rows=rows.filter(r=>mesesSel.some(m=>normMes(m)===normMes(r.mes)));
   }
- 
+
   // Ordena por mês cronologicamente
   rows=[...rows].sort((a,b)=>{
     const parse=s=>{
@@ -2374,14 +1745,14 @@ function renderCustos(){
     };
     return parse(a.mes)-parse(b.mes);
   });
- 
+
   const labels=rows.map(r=>r.mes.toUpperCase());
   // custoVariavel = custoGeral - totalFixo
   const totalArr=rows.map(r=>r.custoGeral||0);
   const fixoArr=rows.map(r=>r.custoFixo||0);
   const fixoVarArr=rows.map(r=>r.custoFixoVar||0);
   const varArr=rows.map(r=>Math.max(0,(r.custoGeral||0)-(r.totalFixo||0)));
- 
+
   const ds=(label,data,color,dash=[])=>({
     label,data,
     borderColor:color,
@@ -2395,7 +1766,7 @@ function renderCustos(){
     fill:false,
     borderDash:dash
   });
- 
+
   if(charts["custos"])charts["custos"].destroy();
   charts["custos"]=new Chart(ctx,{
     type:"line",
@@ -2440,11 +1811,11 @@ function renderCustos(){
     }
   });
 }
- 
+
 function renderKpiLinha(){
   const ctx=document.getElementById("c-kpi-linha");
   if(!ctx)return;
- 
+
   // Mesma lógica de filtro do renderCustos — ano + mês
   const ano=document.getElementById("f-ano").value;
   const mesesSel=getMs("mes");
@@ -2460,7 +1831,7 @@ function renderKpiLinha(){
     const normMes=s=>s.trim().toLowerCase();
     rows=rows.filter(r=>mesesSel.some(m=>normMes(m)===normMes(r.mes)));
   }
- 
+
   // Ordena cronologicamente
   rows=[...rows].sort((a,b)=>{
     const parse=s=>{
@@ -2472,23 +1843,23 @@ function renderKpiLinha(){
     };
     return parse(a.mes)-parse(b.mes);
   });
- 
+
   const labels=rows.map(r=>r.mes.toUpperCase());
- 
+
   // Eficiência Operacional por mês: precisamos da receita líquida por mês dos filteredData
   // Usa filteredData para calcular liq por mês
   const efArr=rows.map(r=>{
     const mesLiq=filteredData.filter(d=>d.mes.toLowerCase()===r.mes.toLowerCase()).reduce((s,d)=>s+d.liquido,0);
     return r.custoGeral>0 ? parseFloat((mesLiq/r.custoGeral).toFixed(3)) : 0;
   });
- 
+
   // KPIs por mês — valores em % (0..1) exceto MKP que é multiplicador
   const lucArr  = rows.map(r=> parseFloat((r.pctLuc*100).toFixed(2)));        // % Lucratividade
   const cmvArr  = rows.map(r=> parseFloat((r.pctCmv*100).toFixed(2)));        // % CMV
   const mkpArr  = rows.map(r=> parseFloat((r.mkp||0).toFixed(3)));            // MKP ×
   const mcArr   = rows.map(r=> parseFloat((r.margem*100).toFixed(2)));        // % Margem Contrib
   const efPctArr= efArr.map(v=> parseFloat((v*100).toFixed(2)));              // Eficiência × → %
- 
+
   const ds=(label,data,color,dash=[],yAxis="y")=>({
     label, data,
     borderColor:color,
@@ -2503,7 +1874,7 @@ function renderKpiLinha(){
     borderDash:dash,
     yAxisID:yAxis,
   });
- 
+
   if(charts["kpi-linha"])charts["kpi-linha"].destroy();
   charts["kpi-linha"]=new Chart(ctx,{
     type:"line",
@@ -2563,7 +1934,7 @@ function renderKpiLinha(){
     }
   });
 }
- 
+
 function renderTable(){
   const q=document.getElementById("t-search").value.toLowerCase();
   const by={};
@@ -2577,7 +1948,7 @@ function renderTable(){
   const totalQtd=prods.reduce((s,[_,v])=>s+(v.qt||0),0);
   const totalLiq=prods.reduce((s,[_,v])=>s+(v.liq||0),0);
   document.getElementById("prod-tag").textContent=prods.length+" produtos";
- 
+
   const linhas = prods.slice(0,100).map(([p,{g,qt,liq}],i)=>`
     <tr>
       <td><span style="background:${PAL[i%PAL.length]}22;color:${PAL[i%PAL.length]};padding:1px 7px;border-radius:4px;font-size:.68rem;font-weight:700">${i+1}</span></td>
@@ -2594,7 +1965,7 @@ function renderTable(){
         </div>
       </td>
     </tr>`).join("");
- 
+
   const totalRow = `
     <tr style="background:#1f1f2e;border-top:2px solid var(--accent)">
       <td colspan="3" style="font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text)">Total</td>
@@ -2602,14 +1973,14 @@ function renderTable(){
       <td class="num" style="font-weight:800;color:var(--accent)">${R(totalLiq)}</td>
       <td class="num" style="font-weight:800;color:var(--text)">${tot>0?(totalLiq/tot*100).toFixed(1):0}%</td>
     </tr>`;
- 
+
   document.getElementById("t-body").innerHTML = linhas + totalRow;
 }
- 
+
 // ── AUDITORIA ──
 const AUD_MESES_FULL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const AUD_MONTH_MAP={jan:0,janeiro:0,fev:1,fevereiro:1,mar:2,marco:2,março:2,abr:3,abril:3,mai:4,maio:4,jun:5,junho:5,jul:6,julho:6,ago:7,agosto:7,set:8,setembro:8,out:9,outubro:9,nov:10,novembro:10,dez:11,dezembro:11};
- 
+
 function audNormalize(s){
   return (s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9\s/]/g," ").replace(/\s+/g," ").trim();
 }
@@ -2730,7 +2101,7 @@ function fecharAuditoria(){
 }
 function audFmtMoeda(v){ return "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function audFmtNum(v){ return Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:3}); }
- 
+
 function audResumoCard(titulo, valor, sub, negativo=false){
   return `<div class="audit-result-card${negativo?" neg":""}">
     <div class="audit-result-label">${titulo}</div>
@@ -2738,31 +2109,31 @@ function audResumoCard(titulo, valor, sub, negativo=false){
     <div class="audit-result-sub">${sub}</div>
   </div>`;
 }
- 
+
 function auditarProdutos(){
   if(!allData.length && !dadosDespesas.length){ alert("Carregue o arquivo primeiro."); return; }
   const termos=[...document.querySelectorAll("#audit-lista input")].map(i=>i.value.trim()).filter(Boolean);
   if(!termos.length){ alert("Digite ao menos um produto."); return; }
- 
+
   const periodo=audPeriodoSelecionado();
   if(periodo.mesIni && periodo.mesFim && audMonthIndex(periodo.mesIni)>audMonthIndex(periodo.mesFim)){
     alert("Mês início não pode ser maior que mês fim.");
     return;
   }
- 
+
   const vendasPeriodo=allData.filter(audDentroPeriodoVenda);
   const despesasPeriodo=dadosDespesas.filter(audDentroPeriodoDesp);
- 
+
   let totVendaQtd=0, totVendaVal=0, totEntQtd=0, totEntVal=0;
   const analyticSections=[];
- 
+
   const cards = termos.map(termo=>{
     const matchesV=vendasPeriodo.filter(r=>audContains(r.produto, termo) || audContains(r.grupo, termo) || audContains(r.tipo, termo));
     const matchesD=despesasPeriodo.filter(r=>audContains(r.item, termo));
- 
+
     const nomesV=[...new Set(matchesV.map(r=>r.produto))];
     const nomesD=[...new Set(matchesD.map(r=>r.item))];
- 
+
     const grupos={};
     matchesV.forEach(r=>{
       const k=r.produto||"(sem nome)";
@@ -2776,7 +2147,7 @@ function auditarProdutos(){
       grupos[k].entradaQtd += (r.qtd||0);
       grupos[k].entradaVal += (r.total||0);
     });
- 
+
     const analiticoRows=Object.values(grupos)
       .map(g=>({
         ...g,
@@ -2789,7 +2160,7 @@ function auditarProdutos(){
         if(volB!==volA) return volB-volA;
         return a.nome.localeCompare(b.nome,'pt-BR');
       });
- 
+
     // Sintético sempre derivado do analítico, para garantir consistência total
     const sintese = analiticoRows.reduce((acc,g)=>{
       acc.vendaQtd += (g.saidaQtd||0);
@@ -2806,9 +2177,9 @@ function auditarProdutos(){
     const saldoVal=entVal-vendaVal;
     const saldoClass=saldoQtd<0?"neg":"pos";
     const badge=`${analiticoRows.length.toLocaleString("pt-BR")} ${analiticoRows.length===1?"item consolidado":"itens consolidados"}`;
- 
+
     totVendaQtd+=vendaQtd; totVendaVal+=vendaVal; totEntQtd+=entQtd; totEntVal+=entVal;
- 
+
     const analiticoHtml=analiticoRows.length ? `
       <div class="audit-analytic-card">
         <div class="audit-analytic-head">
@@ -2866,7 +2237,7 @@ function auditarProdutos(){
         <div class="audit-analytic-empty">Nenhum item encontrado para este termo no período selecionado.</div>
       </div>`;
     analyticSections.push(analiticoHtml);
- 
+
     return `
       <div class="audit-card">
         <div class="audit-card-head">
@@ -2910,7 +2281,7 @@ function auditarProdutos(){
         </div>
       </div>`;
   }).join("");
- 
+
   const saldoQtdGeral=totEntQtd-totVendaQtd;
   const saldoValGeral=totEntVal-totVendaVal;
   document.getElementById("audit-resumo").innerHTML=`
@@ -2927,10 +2298,7 @@ function auditarProdutos(){
   requestAnimationFrame(applyNeonCards);
   document.getElementById("audit-resumo").scrollIntoView({behavior:"smooth",block:"start"});
 }
- 
+
 </script>
 </body>
 </html>
-
-
-
