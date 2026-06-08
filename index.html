@@ -225,7 +225,7 @@
 
   /* ── PADRÃO APROVADO DOS CARDS: BORDA SUPERIOR + NEON ÚNICO ── */
   .kpi-card,.fin-zone,.fin-kpi,.chart-card,.table-card,.audit-box,
-  .audit-result-card,.audit-card,.audit-analytic-card,.goal-panel,.goal-gauge-card{
+  .audit-result-card,.audit-card,.audit-analytic-card,.goal-panel,.goal-gauge-card,.drink-summary-card{
     --neon-card: var(--accent);
     --neon-rgb: 245,166,35;
     border:1px solid rgba(255,255,255,.07) !important;
@@ -240,7 +240,7 @@
   }
   .kpi-card::after,.fin-kpi::after,.chart-card::after,.table-card::after,
   .audit-box::after,.audit-result-card::after,.audit-card::after,.audit-analytic-card::after,
-  .fin-zone::after,.goal-panel::after,.goal-gauge-card::after{
+  .fin-zone::after,.goal-panel::after,.goal-gauge-card::after,.drink-summary-card::after{
     content:"";
     position:absolute;
     top:0;left:0;right:0;height:44%;
@@ -251,10 +251,10 @@
   }
   .kpi-card:hover,.fin-kpi:hover,.chart-card:hover,.table-card:hover,
   .audit-box:hover,.audit-result-card:hover,.audit-card:hover,.audit-analytic-card:hover,
-  .fin-zone:hover,.goal-panel:hover,.goal-gauge-card:hover,
+  .fin-zone:hover,.goal-panel:hover,.goal-gauge-card:hover,.drink-summary-card:hover,
   .kpi-card:active,.fin-kpi:active,.chart-card:active,.table-card:active,
   .audit-box:active,.audit-result-card:active,.audit-card:active,.audit-analytic-card:active,
-  .fin-zone:active,.goal-panel:active,.goal-gauge-card:active{
+  .fin-zone:active,.goal-panel:active,.goal-gauge-card:active,.drink-summary-card:active{
     transform:translateY(-3px);
     border-color:rgba(var(--neon-rgb),.42) !important;
     border-top-color:var(--neon-card) !important;
@@ -262,7 +262,7 @@
   }
   .kpi-card:hover::after,.fin-kpi:hover::after,.chart-card:hover::after,.table-card:hover::after,
   .audit-box:hover::after,.audit-result-card:hover::after,.audit-card:hover::after,.audit-analytic-card:hover::after,
-  .fin-zone:hover::after,
+  .fin-zone:hover::after,.drink-summary-card:hover::after,
   .kpi-card:active::after,.fin-kpi:active::after,.chart-card:active::after,.table-card:active::after,
   .audit-box:active::after,.audit-result-card:active::after,.audit-card:active::after,.audit-analytic-card:active::after,
   .fin-zone:active::after{opacity:1}
@@ -286,6 +286,62 @@
   .mom.neutral{color:#686880;text-shadow:none;font-weight:700}
   .evo-note{font-size:.68rem;color:var(--muted);margin:.35rem 0 .1rem;line-height:1.35}
   @media(max-width:700px){.evo-table{min-width:680px}.evo-table th,.evo-table td{padding:.62rem .6rem}.metric-pill{font-size:.6rem}.cell-val{font-size:.74rem}}
+
+
+  /* ── DEMONSTRATIVO DE DRINKS ── */
+  .drink-demo-card{margin-bottom:1.5rem}
+  .drink-table-wrap{overflow:auto;max-height:520px;padding:.2rem 0 .45rem}
+  .drink-table{width:100%;min-width:1860px;border-collapse:separate;border-spacing:0;font-size:.76rem}
+  .drink-table th{position:sticky;top:0;z-index:4;padding:.62rem .58rem;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.08em;font-size:.58rem;font-weight:900;text-align:center;white-space:nowrap;color:#050509}
+  .drink-table th small{display:block;margin-top:.18rem;font-size:.49rem;letter-spacing:.08em;opacity:.78;font-weight:900}
+  .drink-table .head2 th{top:35px;z-index:4;min-width:86px}
+  .drink-table th.month-head,.drink-table td.month-cell{position:sticky;left:0;z-index:5;text-align:left;background:#18181f!important;color:var(--text);border-right:1px solid var(--border);min-width:82px}
+
+  .drink-table .head2 th{background:#19192a!important;color:#ffffff!important;font-weight:950!important;text-shadow:0 0 8px rgba(255,255,255,.20);border-bottom:1px solid rgba(255,255,255,.18)}
+  .drink-table .head2 th.grp-resultado{background:#ff1f2d!important;color:#ffffff!important;text-shadow:0 0 9px rgba(255,31,45,.35)}
+  .drink-table .grp-drinks{background:#f3ff00}
+  .drink-table .grp-especiais{background:#00f5ff}
+  .drink-table .grp-semalcool{background:#00ff88}
+  .drink-table .grp-double{background:#00a8ff}
+  .drink-table .grp-resultado{background:#ff1f2d;color:#fff}
+  .drink-table td{padding:.58rem .58rem;border-bottom:1px solid #1f1f2e;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--text);background:#14141d}
+  .drink-table tr:hover td{background:#202033}
+  .drink-table tr:hover td.month-cell{background:#202033!important}
+  .drink-table td.total-col{font-weight:900;color:#fff;background:rgba(255,255,255,.055)}
+  .drink-table td.total-drinks{color:#f3ff00;text-shadow:0 0 8px rgba(243,255,0,.22)}
+  .drink-table td.total-especiais{color:#00f5ff;text-shadow:0 0 8px rgba(0,245,255,.22)}
+  .drink-table td.total-semalcool{color:#00ff88;text-shadow:0 0 8px rgba(0,255,136,.22)}
+  .drink-table td.total-double{color:#00a8ff;text-shadow:0 0 8px rgba(0,168,255,.22)}
+  .drink-table td.result-cell{font-weight:900;color:#fff;background:rgba(255,31,45,.12)}
+  .drink-money{font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
+  .drink-qty{margin-top:.16rem;font-size:.64rem;color:#b9b9d0;font-weight:850;letter-spacing:.02em}
+  .drink-table td.total-col .drink-money,.drink-table td.total-col .drink-qty{color:inherit;text-shadow:inherit}
+  .drink-table td.result-cell .drink-money{color:#fff}
+  .drink-share{display:inline-flex;align-items:center;justify-content:flex-end;min-width:64px;border-radius:999px;padding:.14rem .46rem;font-weight:900;background:rgba(255,31,45,.14);color:#ff6b77;border:1px solid rgba(255,31,45,.35)}
+  .drink-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-bottom:.9rem}
+  .drink-summary-card{--neon-card:var(--dcolor);background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.07);border-top:3px solid var(--dcolor);border-radius:12px;padding:.9rem 1rem;box-shadow:0 0 14px rgba(0,0,0,.22)}
+  .drink-summary-card:hover,.drink-summary-card:active{box-shadow:0 -1px 0 var(--dcolor),0 0 22px color-mix(in srgb,var(--dcolor) 46%,transparent),0 14px 34px rgba(0,0,0,.45)!important;border-color:color-mix(in srgb,var(--dcolor) 55%,transparent)!important}
+  .drink-summary-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:900;margin-bottom:.35rem}
+  .drink-summary-value{font-family:var(--font-head);font-size:1.45rem;letter-spacing:.04em;color:var(--dcolor);line-height:1}
+  .drink-summary-sub{font-size:.68rem;color:var(--muted);margin-top:.28rem;font-weight:700}
+  @media(max-width:700px){.drink-table{min-width:1450px;font-size:.68rem}.drink-table th,.drink-table td{padding:.5rem .48rem}.drink-table .head2 th{top:32px}}
+
+
+  /* ── GRÁFICO VENDAS × TICKET MÉDIO — ESTILO DASHBOARD EXCEL ── */
+  .drink-combo-card{border-top-color:#f3ff00!important;background:linear-gradient(135deg,#2b2b2b 0%,#3a3a3a 48%,#242424 100%)!important;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 18px 34px rgba(0,0,0,.42);overflow:hidden}
+  .drink-combo-card:hover,.drink-combo-card:active{box-shadow:0 0 0 1px rgba(243,255,0,.32),0 0 24px rgba(243,255,0,.24),0 18px 42px rgba(0,0,0,.55)!important}
+  .drink-combo-head{display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.7rem}
+  .drink-combo-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:#f2f2f2;font-weight:900}
+  .drink-combo-badge{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#111;background:#f3ff00;border-radius:999px;padding:.24rem .58rem;font-weight:950;box-shadow:0 0 12px rgba(243,255,0,.35)}
+  .drink-combo-wrap{position:relative;height:360px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.12);padding:.2rem;border-radius:8px}
+  .drink-combo-table-wrap{overflow-x:auto;margin-top:.55rem;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(0,0,0,.18)}
+  .drink-combo-table{width:100%;min-width:760px;border-collapse:collapse;font-size:.68rem;font-weight:850;font-variant-numeric:tabular-nums;color:#fff}
+  .drink-combo-table th,.drink-combo-table td{border:1px solid rgba(255,255,255,.20);padding:.36rem .5rem;text-align:center;white-space:nowrap}
+  .drink-combo-table th:first-child{background:rgba(255,255,255,.13);text-align:left;letter-spacing:.04em;text-transform:uppercase;color:#f3ff00;min-width:92px}
+  .drink-combo-table .row-ticket th:first-child{color:#ff2b35}
+  .drink-combo-table td{background:rgba(255,255,255,.055)}
+  .drink-combo-empty{padding:1rem;color:var(--muted);font-size:.82rem;text-align:center}
+  @media(max-width:700px){.drink-combo-wrap{height:330px}.drink-combo-table{min-width:680px;font-size:.62rem}.drink-combo-table th,.drink-combo-table td{padding:.32rem .42rem}}
 
 </style>
 </head>
@@ -397,10 +453,6 @@
   <div class="main">
     <div class="kpi-row" id="kpi-row"></div>
 
-    <!-- METAS DO MÊS — inspirado na aba Dashboard do Excel -->
-    <div class="section-title">Metas do M&ecirc;s <span class="tag">DASHBOARD</span></div>
-    <div id="metas-dashboard" class="goals-dashboard"></div>
-
     <!-- RESULTADOS FINANCEIROS — lidos da aba MATRIZ ANALITICO -->
     <div class="section-title">Resultados Financeiros <span class="tag">MATRIZ ANAL&Iacute;TICO</span></div>
     <div class="fin-grid">
@@ -415,6 +467,23 @@
         <div class="fin-zone-title"><span class="dot"></span>DESPESAS &amp; INDICADORES</div>
         <div class="fin-kpi-row" style="grid-template-columns:1fr 1fr 1fr 1fr" id="fin-despesas"></div>
       </div>
+    </div>
+
+    <!-- DEMONSTRATIVO DE DRINKS — lido da aba ANÁLISE DRINK -->
+    <div class="section-title">Demonstrativo de Drinks <span class="tag">AN&Aacute;LISE DRINK</span></div>
+    <div class="chart-card drink-demo-card">
+      <h3>Drinks por semana, categoria e participa&ccedil;&atilde;o no faturamento</h3>
+      <div id="drink-analysis" class="drink-table-wrap"></div>
+    </div>
+
+    <!-- VENDAS × TICKET MÉDIO — estilo do gráfico da aba Dashboard -->
+    <div class="chart-card drink-combo-card">
+      <div class="drink-combo-head">
+        <h3 class="drink-combo-title">Vendas × Ticket Médio — últimos 12 meses</h3>
+        <span class="drink-combo-badge">Vendas + TKT + tendência</span>
+      </div>
+      <div class="drink-combo-wrap"><canvas id="c-drink-vendas-tkt"></canvas></div>
+      <div id="drink-vendas-tkt-table" class="drink-combo-table-wrap"></div>
     </div>
 
     <!-- EVOLUÇÃO DE CUSTOS -->
@@ -532,6 +601,7 @@ const AUTO_LOAD_HOSTED_EXCEL = true;
 let allData=[], filteredData=[], charts={};
 let matrizData=[]; // dados da aba MATRIZ ANALITICO
 let dashboardGoalsData=null; // dados da aba dados graf KPI / Dashboard
+let drinkAnalysisData=[]; // dados da aba ANÁLISE DRINK
 let projecaoData=null; // dados da aba Projeção
 let dadosDespesas=[]; // dados da aba Despesas para auditoria
 
@@ -674,6 +744,7 @@ function load(file){
 
               // Etapa 6: metas do mês / Dashboard
               dashboardGoalsData = parseDashboardGoals(wb, normM);
+              drinkAnalysisData = parseDrinkAnalysis(wb, normM);
 
               // Etapa 7: projeção
               setProgress(78, "Calculando projeção...");
@@ -800,7 +871,7 @@ function applyFilters(){
     (getMs("dia").length===0   ||getMs("dia").includes(d.dia))   &&
     (getMs("produto").length===0||getMs("produto").includes(d.produto))
   );
-  renderKPIs();renderDashboardGoals();renderFinanceiro();renderProjecao();renderCharts();renderTable();
+  renderKPIs();renderFinanceiro();renderDrinkAnalysis();renderProjecao();renderCharts();renderTable();
   requestAnimationFrame(applyNeonCards);
 }
 
@@ -922,6 +993,116 @@ function applyNeonCards(){
 }
 
 
+
+// DEMONSTRATIVO DE DRINKS — dados vindos da aba "ANÁLISE DRINK"
+function parseDrinkAnalysis(wb,norm){
+  try{
+    const sn = wb.SheetNames.find(n=>norm(n).includes("analisedrink") || norm(n).includes("anlisedrink"));
+    if(!sn) return [];
+    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+    const num = v => parseFloat(v)||0;
+    const rows=[];
+    for(let i=5;i<raw.length;i++){
+      const r=raw[i]||[];
+      const mes=String(r[1]||r[27]||"").trim();
+      if(!mes) continue;
+      const p=mes.split("/");
+      const yy=parseInt(p[1]||0);
+      const ano=yy?String(yy+(yy<100?2000:0)):"";
+      rows.push({
+        mes, ano,
+        drinks:[num(r[2]),num(r[3]),num(r[4]),num(r[5]),num(r[6])], drinksTotal:num(r[7]),
+        especiais:[num(r[8]),num(r[9]),num(r[10]),num(r[11]),num(r[12])], especiaisTotal:num(r[13]),
+        semAlcool:[num(r[14]),num(r[15]),num(r[16]),num(r[17]),num(r[18])], semAlcoolTotal:num(r[19]),
+        double:[num(r[20]),num(r[21]),num(r[22]),num(r[23]),num(r[24])], doubleTotal:num(r[25]),
+        faturamento:num(r[28]), drinkTotal:num(r[29]), participacao:num(r[30])
+      });
+    }
+    return rows;
+  }catch(e){
+    console.warn("Não foi possível ler a aba ANÁLISE DRINK",e);
+    return [];
+  }
+}
+function fmtDrinkMoney(v){return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDrinkPct(v){return (Number(v||0)*100).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";}
+function getDrinkFilteredRows(){
+  const ano=document.getElementById("f-ano")?.value||"";
+  const mesesSel=getMs("mes");
+  let rows=[...(drinkAnalysisData||[])];
+  if(ano) rows=rows.filter(r=>r.ano===ano);
+  if(mesesSel.length>0){
+    const n=s=>String(s||"").trim().toLowerCase();
+    rows=rows.filter(r=>mesesSel.some(m=>n(m)===n(r.mes)));
+  }
+  return rows;
+}
+function renderDrinkAnalysis(){
+  const el=document.getElementById("drink-analysis");
+  if(!el)return;
+  const rows=getDrinkFilteredRows();
+  if(!rows.length){
+    el.innerHTML=`<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:1rem">Sem dados da aba ANÁLISE DRINK para o período selecionado.</div>`;
+    return;
+  }
+  const normTxt=s=>String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const qtyValue=(d,grupo)=>{
+    const g=normTxt(grupo);
+    if(g.includes("double")) return Number(d.qt_double)||Number(d.qt_final)||Number(d.qtd)||0;
+    return Number(d.qt_final)||Number(d.qtd)||0;
+  };
+  const qtyFor=(mes,grupo,semana)=>{
+    const g=normTxt(grupo);
+    return allData.filter(d=>normTxt(d.mes)===normTxt(mes)&&normTxt(d.grupo)===g&&Math.round(Number(d.semana||0))===semana)
+      .reduce((s,d)=>s+qtyValue(d,grupo),0);
+  };
+  const qtyTotal=(grupo)=>rows.reduce((tot,r)=>tot+[1,2,3,4,5].reduce((s,w)=>s+qtyFor(r.mes,grupo,w),0),0);
+  const fmtQty=v=>Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:0});
+  const soma=(fn)=>rows.reduce((s,r)=>s+(fn(r)||0),0);
+  const totalFat=soma(r=>r.faturamento);
+  const totalDrink=soma(r=>r.drinkTotal);
+  const part=totalFat>0?totalDrink/totalFat:0;
+  const summary=`<div class="drink-summary">
+    <div class="drink-summary-card" style="--dcolor:#f3ff00"><div class="drink-summary-label">Drinks</div><div class="drink-summary-value">${fmtDrinkMoney(soma(r=>r.drinksTotal))}</div><div class="drink-summary-sub">${fmtQty(qtyTotal("DRINKS"))} un no período</div></div>
+    <div class="drink-summary-card" style="--dcolor:#00f5ff"><div class="drink-summary-label">Drinks especiais</div><div class="drink-summary-value">${fmtDrinkMoney(soma(r=>r.especiaisTotal))}</div><div class="drink-summary-sub">${fmtQty(qtyTotal("DRINKS ESPECIAIS"))} un no período</div></div>
+    <div class="drink-summary-card" style="--dcolor:#00a8ff"><div class="drink-summary-label">Double drinks</div><div class="drink-summary-value">${fmtDrinkMoney(soma(r=>r.doubleTotal))}</div><div class="drink-summary-sub">${fmtQty(qtyTotal("DOUBLE DRINKS"))} un no período</div></div>
+    <div class="drink-summary-card" style="--dcolor:#ff3c6e"><div class="drink-summary-label">Participação</div><div class="drink-summary-value">${fmtDrinkPct(part)}</div><div class="drink-summary-sub">drinks ÷ faturamento</div></div>
+  </div>`;
+  const weekHead=[1,2,3,4,5].map(w=>`<th>${w}ª SEM<small>R$ / Qtd</small></th>`).join("")+`<th>Total<small>R$ / Qtd</small></th>`;
+  const cell=(valor,qtd,cls="")=>`<td class="${cls}"><div class="drink-money">${fmtDrinkMoney(valor)}</div><div class="drink-qty">${fmtQty(qtd)} un</div></td>`;
+  const vals=(r,arrKey,totalKey,cls,grupo)=>{
+    const qs=[1,2,3,4,5].map(w=>qtyFor(r.mes,grupo,w));
+    const totalQ=qs.reduce((a,b)=>a+b,0);
+    return r[arrKey].map((v,i)=>cell(v,qs[i])).join("")+cell(r[totalKey],totalQ,"total-col "+cls);
+  };
+  const body=rows.map(r=>`<tr>
+    <td class="month-cell">${r.mes}</td>
+    ${vals(r,"drinks","drinksTotal","total-drinks","DRINKS")}
+    ${vals(r,"especiais","especiaisTotal","total-especiais","DRINKS ESPECIAIS")}
+    ${vals(r,"semAlcool","semAlcoolTotal","total-semalcool","DRINK SEM ÁLCOOL")}
+    ${vals(r,"double","doubleTotal","total-double","DOUBLE DRINKS")}
+    <td class="result-cell"><div class="drink-money">${fmtDrinkMoney(r.faturamento)}</div></td>
+    <td class="result-cell"><div class="drink-money">${fmtDrinkMoney(r.drinkTotal)}</div></td>
+    <td class="result-cell"><span class="drink-share">${fmtDrinkPct(r.participacao)}</span></td>
+  </tr>`).join("");
+  el.innerHTML=`${summary}<table class="drink-table">
+    <thead>
+      <tr>
+        <th class="month-head" rowspan="2">Mês</th>
+        <th class="grp-drinks" colspan="6">DRINKS</th>
+        <th class="grp-especiais" colspan="6">DRINKS ESPECIAIS</th>
+        <th class="grp-semalcool" colspan="6">DRINK SEM ÁLCOOL</th>
+        <th class="grp-double" colspan="6">DOUBLE DRINKS</th>
+        <th class="grp-resultado" colspan="3">RESULTADO</th>
+      </tr>
+      <tr class="head2">
+        ${weekHead}${weekHead}${weekHead}${weekHead}
+        <th class="grp-resultado">Faturamento</th><th class="grp-resultado">Drink</th><th class="grp-resultado">Part.</th>
+      </tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>`;
+}
 // METAS DO MÊS — dados vindos da aba "dados graf KPI"
 function parseDashboardGoals(wb,norm){
   try{
@@ -1555,7 +1736,156 @@ function renderProjecao(){
 
 // CHARTS
 const dc=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};
-function renderCharts(){renderMensal();renderCanal();renderGrupo();renderPgto();renderDia();renderHora();renderTkt();renderVendas();renderSemana();renderCustos();renderKpiLinha();}
+
+function renderDrinkVendasTicket(){
+  const canvas=document.getElementById("c-drink-vendas-tkt");
+  const table=document.getElementById("drink-vendas-tkt-table");
+  if(!canvas||!table) return;
+  dc("drink-vendas-tkt");
+
+  const parseMes=s=>{
+    const parts=String(s||"").trim().split("/");
+    const mi=MESES.indexOf((parts[0]||"").slice(0,3));
+    let y=parseInt(parts[1]||"",10);
+    if(isNaN(y)||mi<0) return null;
+    if(y<100) y+=2000;
+    return {m:mi,y,serial:y*12+mi,label:String(s||"").trim()};
+  };
+  const monthSerial=s=>{const p=parseMes(s);return p?p.serial:-Infinity;};
+
+  // Mantém os filtros operacionais, mas ignora o filtro de mês/ano para formar a série histórica.
+  const passOtherFilters=d=>{
+    const v=id=>document.getElementById(id)?.value||"";
+    return (getMs("semana").length===0 || getMs("semana").includes(String(Math.round(d.semana)))) &&
+      (getMs("grupo").length===0 || getMs("grupo").includes(d.grupo)) &&
+      (!v("f-tipo") || d.tipo===v("f-tipo")) &&
+      (!v("f-pgto") || d.pgto===v("f-pgto")) &&
+      (getMs("dia").length===0 || getMs("dia").includes(d.dia)) &&
+      (getMs("produto").length===0 || getMs("produto").includes(d.produto));
+  };
+  const available=sortMes([...new Set(allData.filter(passOtherFilters).map(d=>d.mes))].filter(Boolean));
+  if(!available.length){
+    table.innerHTML='<div class="drink-combo-empty">Sem dados para montar o gráfico.</div>';
+    return;
+  }
+
+  const mesesSel=getMs("mes").filter(m=>available.includes(m));
+  const anchor=mesesSel.length ? mesesSel.sort((a,b)=>monthSerial(a)-monthSerial(b)).at(-1) : available.at(-1);
+  const aSer=monthSerial(anchor);
+  // Série no mesmo espírito do gráfico enviado: mês de referência à esquerda e meses anteriores na sequência.
+  const ms=available.filter(m=>monthSerial(m)<=aSer && monthSerial(m)>=aSer-11).sort((a,b)=>monthSerial(b)-monthSerial(a));
+
+  const rowsForMonth=m=>allData.filter(d=>passOtherFilters(d)&&d.mes===m);
+  const vendas=ms.map(m=>rowsForMonth(m).reduce((s,d)=>s+(Number(d.qtven)||0),0));
+  const tkt=ms.map(m=>{
+    const rows=rowsForMonth(m);
+    const liq=rows.reduce((s,d)=>s+(Number(d.liquido)||0),0);
+    const ven=rows.reduce((s,d)=>s+(Number(d.qtven)||0),0);
+    return ven>0?liq/ven:0;
+  });
+
+  const n=vendas.length;
+  const sx=n*(n-1)/2;
+  const sy=vendas.reduce((a,b)=>a+b,0);
+  const sxx=vendas.reduce((a,_,i)=>a+i*i,0);
+  const sxy=vendas.reduce((a,b,i)=>a+i*b,0);
+  const den=n*sxx-sx*sx;
+  const slope=den?((n*sxy-sx*sy)/den):0;
+  const inter=n?((sy-slope*sx)/n):0;
+  const trend=vendas.map((_,i)=>Math.max(0,inter+slope*i));
+
+  const fmtInt=v=>Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:0});
+  const fmtT=v=>Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  table.innerHTML=`<table class="drink-combo-table">
+    <tbody>
+      <tr><th>Mês</th>${ms.map(m=>`<td>${m.toLowerCase()}</td>`).join("")}</tr>
+      <tr><th>Vendas</th>${vendas.map(v=>`<td>${fmtInt(v)}</td>`).join("")}</tr>
+      <tr class="row-ticket"><th>Tkt (x)</th>${tkt.map(v=>`<td>${fmtT(v)}</td>`).join("")}</tr>
+    </tbody>
+  </table>`;
+
+  const maxT=Math.max(...tkt,0), minT=Math.min(...tkt.filter(v=>v>0), maxT||0);
+  const yMin=Math.max(0,Math.floor(minT-2));
+  const yMax=Math.max(10,Math.ceil(maxT+1));
+
+  const labelsPlugin={
+    id:"drinkComboLabels",
+    afterDatasetsDraw(chart){
+      const {ctx}=chart;
+      ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        const meta=chart.getDatasetMeta(di);
+        if(meta.hidden) return;
+        meta.data.forEach((el,i)=>{
+          const val=ds.data[i];
+          if(val==null||isNaN(val)) return;
+          if(ds.label==="Vendas"){
+            ctx.save();
+            ctx.translate(el.x, el.y+10);
+            ctx.rotate(-Math.PI/2);
+            ctx.textAlign="right";
+            ctx.textBaseline="middle";
+            ctx.fillStyle="#101010";
+            ctx.font="900 12px DM Sans, Arial";
+            ctx.fillText(fmtInt(val),0,0);
+            ctx.restore();
+          }else if(ds.label==="Tkt (x)"){
+            ctx.textAlign="center";
+            ctx.textBaseline="bottom";
+            ctx.fillStyle="#ff101b";
+            ctx.shadowColor="#000000";
+            ctx.shadowBlur=5;
+            ctx.font="900 12px DM Sans, Arial";
+            ctx.fillText(fmtT(val), el.x, el.y-8);
+            ctx.shadowBlur=0;
+          }
+        });
+      });
+      ctx.restore();
+    },
+    beforeDraw(chart){
+      const {ctx,chartArea}=chart;
+      if(!chartArea) return;
+      const g=ctx.createLinearGradient(chartArea.left,chartArea.top,chartArea.right,chartArea.bottom);
+      g.addColorStop(0,"rgba(255,255,255,.10)");
+      g.addColorStop(.55,"rgba(255,255,255,.05)");
+      g.addColorStop(1,"rgba(0,0,0,.14)");
+      ctx.save();
+      ctx.fillStyle=g;
+      ctx.fillRect(chartArea.left,chartArea.top,chartArea.right-chartArea.left,chartArea.bottom-chartArea.top);
+      ctx.restore();
+    }
+  };
+
+  const opts={
+    responsive:true,
+    maintainAspectRatio:false,
+    animation:{duration:550},
+    plugins:{
+      legend:{position:"bottom",labels:{color:"#ffffff",font:{family:"DM Sans",size:11,weight:"800"},boxWidth:34,padding:16}},
+      tooltip:{backgroundColor:"#18181f",borderColor:"#f3ff00",borderWidth:1,titleColor:"#fff",bodyColor:"#fff",
+        callbacks:{label:c=>c.dataset.yAxisID==="yTkt"?" Tkt (x): "+fmtT(c.raw):" "+c.dataset.label+": "+fmtInt(c.raw)}}
+    },
+    layout:{padding:{top:28,right:10,left:6,bottom:2}},
+    scales:{
+      x:{ticks:{color:"#e5e5e5",font:{family:"DM Sans",size:10,weight:"800"}},grid:{color:"rgba(255,255,255,.08)"}},
+      yTkt:{position:"left",min:yMin,max:yMax,ticks:{color:"#dcdcdc",font:{family:"DM Sans",size:10,weight:"800"},callback:v=>fmtT(v)},grid:{color:"rgba(255,255,255,.11)"}},
+      yVen:{position:"right",beginAtZero:true,ticks:{color:"#f3ff00",font:{family:"DM Sans",size:10,weight:"900"},callback:v=>fmtInt(v)},grid:{drawOnChartArea:false}}
+    }
+  };
+  charts["drink-vendas-tkt"]=new Chart(canvas.getContext("2d"),{
+    type:"bar",
+    data:{labels:ms.map(m=>m.toLowerCase().replace("/","-")),datasets:[
+      {label:"Vendas",data:vendas,yAxisID:"yVen",backgroundColor:"#f3ff00",borderColor:"#f3ff00",borderWidth:1,borderRadius:2,barPercentage:.62,categoryPercentage:.72,order:2},
+      {label:"Tkt (x)",data:tkt,type:"line",yAxisID:"yTkt",borderColor:"#ff101b",backgroundColor:"#ff101b",borderWidth:4,pointRadius:4.5,pointHoverRadius:6,pointBackgroundColor:"#ff101b",pointBorderColor:"#ff101b",tension:.38,order:1},
+      {label:"Linear (Vendas)",data:trend,type:"line",yAxisID:"yVen",borderColor:"#f3ff00",backgroundColor:"transparent",borderWidth:2,borderDash:[7,7],pointRadius:0,tension:0,order:0}
+    ]},
+    options:opts,
+    plugins:[labelsPlugin]
+  });
+}
+
+function renderCharts(){renderMensal();renderCanal();renderGrupo();renderPgto();renderDia();renderHora();renderTkt();renderVendas();renderSemana();renderCustos();renderKpiLinha();renderDrinkVendasTicket();}
 
 function getMeses(){
   return sortMes([...new Set(filteredData.map(d=>d.mes))].filter(Boolean));
