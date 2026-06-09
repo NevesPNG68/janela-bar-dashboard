@@ -4024,6 +4024,251 @@ function setupLocalUpload(){
 })();
 
 
+
+// ── AJUSTE V14: FILTRO ECONÔMICO PARA CELULAR/IPAD ──
+// No PC permanece completo. Em telas touch, o filtro atualiza imediatamente os
+// cards essenciais e só atualiza gráficos/tabelas quando a seção entra na tela.
+(function(){
+  const originalRenderKPIsV14 = renderKPIs;
+  const originalRenderFinanceiroV14 = renderFinanceiro;
+  const originalApplyNeonCardsV14 = applyNeonCards;
+  let filteredSummaryV14 = null;
+  const DRINK_GRUPOS_V14 = new Set(["DRINKS","DRINKS ESPECIAIS","DRINK SEM ALCOOL","DOUBLE DRINKS"]);
+
+  function touchModeV14(){
+    return typeof isMobileView === "function" && isMobileView();
+  }
+
+  function rowYearV14(d){
+    if(d._anoV14 !== undefined) return d._anoV14;
+    const p=String(d.mes||"").split("/");
+    const yy=parseInt(p[1]||0);
+    d._anoV14 = p[1] ? String(yy+(yy<100?2000:0)) : "";
+    return d._anoV14;
+  }
+
+  function rowWeekV14(d){
+    if(d._semanaV14 !== undefined) return d._semanaV14;
+    d._semanaV14 = String(Math.round(d.semana||0));
+    return d._semanaV14;
+  }
+
+  function isDrinkV14(d){
+    if(d._drinkV14 !== undefined) return d._drinkV14;
+    d._drinkV14 = DRINK_GRUPOS_V14.has(String(d.grupo||""));
+    return d._drinkV14;
+  }
+
+  function filterStateV14(){
+    const getVal=id=>document.getElementById(id)?.value||"";
+    const mesSel=getMs("mes"), semanaSel=getMs("semana"), grupoSel=getMs("grupo"), diaSel=getMs("dia"), produtoSel=getMs("produto");
+    return {
+      ano:getVal("f-ano"), tipo:getVal("f-tipo"), pgto:getVal("f-pgto"),
+      mesSel, semanaSel, grupoSel, diaSel, produtoSel,
+      mesSet:new Set(mesSel), semanaSet:new Set(semanaSel), grupoSet:new Set(grupoSel), diaSet:new Set(diaSel), produtoSet:new Set(produtoSel)
+    };
+  }
+
+  function rebuildFilteredFastV14(){
+    const f=filterStateV14();
+    const rows=[];
+    const prodSet=new Set();
+    const diasOpSet=new Set();
+    const s={fat:0,liq:0,itens:0,nVen:0,nReg:0,nProd:0,dLiq:0,qtDouble:0,qtDrinks:0,diasOp:0};
+
+    for(let i=0;i<allData.length;i++){
+      const d=allData[i];
+      if(f.ano && rowYearV14(d)!==f.ano) continue;
+      if(f.mesSel.length && !f.mesSet.has(d.mes)) continue;
+      if(f.semanaSel.length && !f.semanaSet.has(rowWeekV14(d))) continue;
+      if(f.grupoSel.length && !f.grupoSet.has(d.grupo)) continue;
+      if(f.tipo && d.tipo!==f.tipo) continue;
+      if(f.pgto && d.pgto!==f.pgto) continue;
+      if(f.diaSel.length && !f.diaSet.has(d.dia)) continue;
+      if(f.produtoSel.length && !f.produtoSet.has(d.produto)) continue;
+
+      rows.push(d);
+      s.fat += d.total || 0;
+      s.liq += d.liquido || 0;
+      s.itens += d.qtd || 0;
+      if((d.qtven||0)>0) s.nVen += d.qtven || 0;
+      if(d.produto) prodSet.add(d.produto);
+      diasOpSet.add(String(d.mes||"")+"|"+rowWeekV14(d)+"|"+String(d.dia||""));
+      s.qtDouble += parseInt(d.qt_double)||0;
+      if(isDrinkV14(d)){
+        s.dLiq += d.liquido || 0;
+        s.qtDrinks += d.qt_final || 0;
+      }
+    }
+    s.nReg=rows.length;
+    s.nProd=prodSet.size;
+    s.diasOp=diasOpSet.size;
+    filteredData=rows;
+    filteredSummaryV14=s;
+    window.filteredSummaryV14=s;
+    return s;
+  }
+
+  function matrizRowsForFilterV14(){
+    const ano=document.getElementById("f-ano")?.value||"";
+    const mesesSel=getMs("mes");
+    let rows=matrizData||[];
+    if(ano){
+      rows=rows.filter(r=>{
+        const p=String(r.mes||"").toLowerCase().split("/");
+        const yy=parseInt(p[1]||0);
+        const y=p[1]?String(yy+(yy<100?2000:0)):"";
+        return y===ano;
+      });
+    }
+    if(mesesSel.length){
+      const set=new Set(mesesSel.map(m=>String(m||"").trim().toLowerCase()));
+      rows=rows.filter(r=>set.has(String(r.mes||"").trim().toLowerCase()));
+    }
+    return rows;
+  }
+
+  renderKPIs = function(){
+    if(!touchModeV14() || !filteredSummaryV14) return originalRenderKPIsV14();
+    const s=filteredSummaryV14;
+    const tkt=s.nVen>0?s.liq/s.nVen:0;
+    const mix=s.liq>0?(s.dLiq/s.liq*100):0;
+    const cards=[
+      {l:"Receita Líquida",v:R(s.liq),s:R(s.fat)+" bruto",c:"var(--accent)",i:"&#128176;"},
+      {l:"Nº de Vendas",v:NB(s.nVen),s:NB(s.nReg)+" registros",c:"#60a5fa",i:"&#127919;"},
+      {l:"Ticket Médio",v:tkt>0?R(tkt):"—",s:"líquido / vendas",c:"#a78bfa",i:"&#127991;"},
+      {l:"Itens Vendidos",v:NB(s.itens),s:s.nProd+" produtos distintos",c:"var(--accent2)",i:"&#128230;"},
+      {l:"Mix Drinks",v:mix.toFixed(1)+"%",s:R(s.dLiq)+" em drinks",c:"#00cfff",i:"&#127864;"},
+      {l:"Double Drinks",v:NB(s.qtDouble)+" un",s:"unidades double vendidas",c:"#22c55e",i:"&#127867;"},
+      {l:"Qtd Vendas Drinks",v:NB(s.qtDrinks)+" un",s:"drinks+especiais+sálcool+double",c:"#ff6b6b",i:"&#127867;"}
+    ];
+    const el=document.getElementById("kpi-row");
+    if(el) el.innerHTML=cards.map(k=>`<div class="kpi-card" style="--kpi-color:${k.c}"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div><div class="kpi-icon">${k.i}</div></div>`).join("");
+  };
+
+  function renderFinanceiroMobileLiteV14(){
+    const finReceita=document.getElementById("fin-receita");
+    const finDespesas=document.getElementById("fin-despesas");
+    const finMedia=document.getElementById("fin-media-serie");
+    if(!finReceita||!finDespesas)return;
+    const rows=matrizRowsForFilterV14();
+    if(!rows.length){
+      finReceita.innerHTML=`<div style="color:var(--muted);font-size:.8rem;grid-column:1/-1;text-align:center;padding:1rem">Sem dados financeiros para o período selecionado.</div>`;
+      finDespesas.innerHTML="";
+      if(finMedia) finMedia.innerHTML="";
+      return;
+    }
+    const s=filteredSummaryV14 || rebuildFilteredFastV14();
+    const sum=k=>rows.reduce((a,r)=>a+(r[k]||0),0);
+    const receita=s.liq||0;
+    const custoFixo=sum("custoFixo");
+    const custoFixoVar=sum("custoFixoVar");
+    const totalFixo=sum("totalFixo");
+    const custoGeral=sum("custoGeral");
+    const custoVariavel=custoGeral-totalFixo;
+    const cmv=sum("cmv");
+    const lucro=rows.reduce((a,r)=>a+(r.lucPrej||0),0);
+    const pctLuc=receita>0?lucro/receita:0;
+    const totalRec=rows.reduce((a,r)=>a+(r.receita||0),0);
+    const margemMedia=totalRec>0 ? rows.reduce((a,r)=>a+((r.margem||0)*(r.receita||0)),0)/totalRec : rows.reduce((a,r)=>a+(r.margem||0),0)/rows.length;
+    const pe=margemMedia>0.001 ? totalFixo/margemMedia : 0;
+    const peAtingido=pe>0 && receita>=pe;
+    const ef=custoGeral>0?receita/custoGeral:0;
+    const mix=receita>0?(s.dLiq/receita*100):0;
+    const recPorDia=s.diasOp>0?receita/s.diasOp:0;
+    const card=(label,val,sub,icon,cor)=>`<div class="fin-kpi" style="${cor?`--kpi-color:${cor}`:""}"><div class="fin-kpi-label">${label}</div><div class="fin-kpi-val" ${cor?`style="color:${cor}"`:""}>${val}</div><div class="fin-kpi-sub">${sub}</div><div class="fin-kpi-icon">${icon}</div></div>`;
+    const pct=(v)=>(v*100).toFixed(1)+"%";
+    const lucroCor=lucro>=0?"#86efac":"#f87171";
+    const peCor=peAtingido?"#86efac":"#fbbf24";
+
+    finReceita.innerHTML=
+      card("Receita Total (Líquida)",R(receita),"col V — VendasOperador","&#128200;","#86efac")+
+      card(lucro>=0?"Lucro":"Prejuízo",R(lucro),pct(pctLuc)+" sobre receita","&#127919;",lucroCor)+
+      card("Receita / Dia",recPorDia>0?RK(recPorDia):"—","~"+s.diasOp+" dias de operação","&#128197;","#00e5ff")+
+      card("Mix Drinks",mix.toFixed(1)+"%",R(s.dLiq)+" em drinks","&#127864;","#ff2d95");
+
+    finDespesas.innerHTML=
+      card("Custo Geral",RK(custoGeral),"total geral","&#128181;","#f87171")+
+      card("Total Fixo",RK(totalFixo),"fixo + misto","&#128203;","#00cfff")+
+      card("Custo Variável",RK(custoVariavel),"custo geral − total fixo","&#128260;","#ffb000")+
+      card("CMV",RK(cmv),"custo merc. vendida","&#128722;","#a78bfa")+
+      card("Ponto de Equilíbrio",pe>0?RK(pe):"—",pe>0?(peAtingido?"atingido":"faltam "+R(Math.max(0,pe-receita))):"sem margem suficiente","&#9878;",peCor)+
+      card("Eficiência Operacional",ef>0?"×"+ef.toFixed(2):"—","receita ÷ custo geral","&#9881;",ef>=1.2?"#86efac":ef>=1?"#fbbf24":"#f87171");
+
+    if(finMedia){
+      finMedia.innerHTML='<div style="font-size:.68rem;color:#dcd9f5;font-weight:850;margin:.65rem 0 .1rem">Modo rápido no celular/iPad: os detalhes completos e gráficos atualizam conforme você rola a tela.</div>';
+    }
+  }
+
+  renderFinanceiro = function(){
+    if(touchModeV14()) return renderFinanceiroMobileLiteV14();
+    return originalRenderFinanceiroV14();
+  };
+
+  applyNeonCards = function(){
+    if(!touchModeV14()) return originalApplyNeonCardsV14();
+    const selector=['.kpi-card','.fin-zone','.fin-kpi','.chart-card','.table-card'].join(',');
+    const h=window.innerHeight||document.documentElement.clientHeight||800;
+    const cards=[...document.querySelectorAll(selector)].filter(el=>{
+      if(el.offsetParent===null) return false;
+      const r=el.getBoundingClientRect();
+      return r.bottom>=-140 && r.top<=h+220;
+    }).slice(0,42);
+    cards.forEach((card,idx)=>{
+      const cor=neonCardColor(idx);
+      card.style.setProperty('--neon-card',cor.css);
+      card.style.setProperty('--neon-rgb',cor.rgb);
+      card.style.setProperty('--kpi-color',cor.css);
+    });
+  };
+
+  scheduleApplyFilters = function(done){
+    if(filterTimer) clearTimeout(filterTimer);
+    const mobile=touchModeV14();
+    if(mobile) closeAllFilterDropdowns();
+    filterTimer=setTimeout(()=>{
+      filterTimer=null;
+      if(mobile) setFilterBusy(true);
+      requestAnimationFrame(()=>{
+        applyFilters(()=>{
+          if(mobile) setFilterBusy(false);
+          if(typeof done==='function') done();
+        });
+      });
+    }, mobile ? 45 : 45);
+  };
+
+  applyFilters = function(done){
+    rebuildFilteredFastV14();
+    const token=++renderToken;
+    if(mobileHeavyTimer){ clearTimeout(mobileHeavyTimer); mobileHeavyTimer=null; }
+
+    if(touchModeV14()){
+      // Sem reconstrução da tela inteira no mobile: apenas topo + finanças leves.
+      runRenderQueue([renderKPIs,renderFinanceiro], token, ()=>{
+        if(token!==renderToken) return;
+        requestAnimationFrame(applyNeonCards);
+        if(typeof done==='function') done();
+        // Dispara atualização só do bloco que estiver visível no momento.
+        setTimeout(()=>{ if(token===renderToken) window.dispatchEvent(new Event('scroll')); }, 260);
+      }, 12);
+    }else{
+      const allJobs=[
+        renderKPIs,renderFinanceiro,renderDrinkAnalysis,renderDrinkVendasTicket,
+        renderCustos,renderKpiLinha,renderProjecao,renderMensal,renderCanal,
+        renderGrupo,renderPgto,renderDia,renderHora,renderTkt,renderVendas,
+        renderSemana,renderTable
+      ];
+      runRenderQueue(allJobs, token, ()=>{
+        if(token!==renderToken) return;
+        requestAnimationFrame(applyNeonCards);
+        resizeDashboardCharts();
+        if(typeof done==='function') done();
+      }, 0);
+    }
+  };
+})();
+
 window.addEventListener("DOMContentLoaded", setupLocalUpload);
 
 </script>
