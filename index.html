@@ -1543,30 +1543,38 @@ function anoChanged(){
 }
 let renderToken=0;
 let filterTimer=null;
+let mobileHeavyTimer=null;
 const MOBILE_QUERY="(max-width:1024px), (pointer:coarse)";
 function isMobileView(){
   return window.matchMedia && window.matchMedia(MOBILE_QUERY).matches;
 }
+function anyDropdownOpen(){
+  return ["mes","semana","dia","produto","grupo"].some(k=>{const d=document.getElementById(k+"-dropdown");return d&&d.style.display==="block";}) ||
+         ["f-ano","f-tipo","f-pgto"].some(k=>{const d=document.getElementById(k+"-single-dropdown");return d&&d.style.display==="block";});
+}
+function setFilterBusy(on){
+  if(on) document.body.classList.add("is-updating");
+  else document.body.classList.remove("is-updating");
+}
 function scheduleApplyFilters(done){
   if(filterTimer) clearTimeout(filterTimer);
-  document.body.classList.add("is-updating");
-  const ddOpen=["mes","semana","dia","produto","grupo"].some(k=>{const d=document.getElementById(k+"-dropdown");return d&&d.style.display==="block";}) || ["f-ano","f-tipo","f-pgto"].some(k=>{const d=document.getElementById(k+"-single-dropdown");return d&&d.style.display==="block";});
-  const delay=isMobileView() ? (ddOpen?220:120) : 70;
+  const mobile=isMobileView();
+  const delay=mobile ? (anyDropdownOpen()?520:260) : 60;
   filterTimer=setTimeout(()=>{
     filterTimer=null;
+    setFilterBusy(true);
     applyFilters(()=>{
-      document.body.classList.remove("is-updating");
+      setFilterBusy(false);
       if(typeof done==="function") done();
     });
   },delay);
 }
-function runRenderStep(fn){
+function runRenderStep(fn, delay){
   const runner=()=>fn();
-  // No celular, pequenos respiros entre os blocos evitam a sensação de congelamento dos filtros.
   if(isMobileView()){
-    setTimeout(runner,8);
+    setTimeout(runner, typeof delay==="number" ? delay : 18);
   }else if("requestIdleCallback" in window){
-    requestIdleCallback(runner,{timeout:120});
+    requestIdleCallback(runner,{timeout:140});
   }else{
     setTimeout(runner,0);
   }
@@ -1581,6 +1589,35 @@ function resizeDashboardCharts(){
 }
 window.addEventListener("resize",resizeDashboardCharts,{passive:true});
 window.addEventListener("orientationchange",()=>setTimeout(resizeDashboardCharts,380),{passive:true});
+
+function runRenderQueue(jobs, token, done, delay){
+  const run=()=>{
+    if(token!==renderToken) return;
+    const job=jobs.shift();
+    if(!job){
+      if(typeof done==="function") done();
+      return;
+    }
+    runRenderStep(()=>{
+      if(token!==renderToken) return;
+      try{ job(); }catch(e){ console.error("Erro ao renderizar", job.name, e); }
+      run();
+    },delay);
+  };
+  requestAnimationFrame(run);
+}
+
+function scheduleMobileHeavyRender(jobs, token){
+  if(mobileHeavyTimer) clearTimeout(mobileHeavyTimer);
+  // No celular, os blocos pesados entram depois que os filtros e gráficos principais já responderam.
+  mobileHeavyTimer=setTimeout(()=>{
+    if(token!==renderToken) return;
+    runRenderQueue([...jobs], token, ()=>{
+      if(token===renderToken) requestAnimationFrame(applyNeonCards);
+    }, 90);
+  }, 900);
+}
+
 function applyFilters(done){
   const getVal=id=>document.getElementById(id)?.value||"";
   const ano=getVal("f-ano");
@@ -1606,10 +1643,11 @@ function applyFilters(done){
   });
 
   const token=++renderToken;
-  const jobs=[
+  if(mobileHeavyTimer) clearTimeout(mobileHeavyTimer);
+
+  const coreJobs=[
     renderKPIs,
     renderFinanceiro,
-    renderDrinkAnalysis,
     renderProjecao,
     renderMensal,
     renderCanal,
@@ -1620,27 +1658,25 @@ function applyFilters(done){
     renderTkt,
     renderVendas,
     renderSemana,
+    renderDrinkVendasTicket
+  ];
+  const heavyJobs=[
+    renderDrinkAnalysis,
     renderCustos,
     renderKpiLinha,
-    renderDrinkVendasTicket,
     renderTable
   ];
 
-  const run=()=>{
+  const jobs=isMobileView()?coreJobs:[...coreJobs,...heavyJobs];
+  runRenderQueue([...jobs], token, ()=>{
     if(token!==renderToken) return;
-    const job=jobs.shift();
-    if(!job){
-      requestAnimationFrame(applyNeonCards);
-      if(typeof done==="function") done();
-      return;
-    }
-    runRenderStep(()=>{
-      try{ job(); }catch(e){ console.error("Erro ao renderizar", job.name, e); }
-      run();
-    });
-  };
-  requestAnimationFrame(run);
+    requestAnimationFrame(applyNeonCards);
+    resizeDashboardCharts();
+    if(typeof done==="function") done();
+    if(isMobileView()) scheduleMobileHeavyRender(heavyJobs, token);
+  }, isMobileView()?26:0);
 }
+
 
 
 // ── SELECTS CUSTOMIZADOS PARA EVITAR LISTA BRANCA NO MOBILE ──
