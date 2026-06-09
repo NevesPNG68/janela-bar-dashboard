@@ -356,8 +356,8 @@
     <p>Arraste o arquivo <b>Por venda_2026.xlsm</b> aqui</p>
     <p>ou clique para selecionar</p>
     <button class="upload-btn" onclick="document.getElementById('file-input').click()">SELECIONAR ARQUIVO</button>
-    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel()">CARREGAR BASE HOSPEDADA</button>
-    <p class="upload-hint" id="hosted-status">A base hospedada será carregada automaticamente quando o HTML estiver publicado.</p>
+    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel()">CARREGAR DO DROPBOX</button>
+    <p class="upload-hint" id="hosted-status">Teste Dropbox ou selecione/arraste a planilha local do computador.</p>
   </div>
   <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
 </div>
@@ -444,7 +444,7 @@
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem">
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
         <button class="reload-btn" onclick="abrirAuditoria()">&#128269; Auditoria</button>
-        <button class="reload-btn" onclick="loadHostedExcel()">&#8635; Atualizar dados</button>
+        <button class="reload-btn" onclick="showUploadScreen()">&#8635; Trocar planilha</button>
       </div>
       <span class="file-name" id="file-name-disp">nenhum arquivo</span>
     </div>
@@ -587,16 +587,16 @@
 // 13=Forma de Pagamento, 16=Grupo, 17=DIA SEMANA
 // 19=FAIXA DE HORA, 20=Mes/Ano, 21=Liquido, 22=Qt.VENDAS
 
-// ── CONFIGURAÇÃO DA BASE HOSPEDADA ──
-// Para atualizar os dados do dashboard publicado, substitua no servidor apenas o arquivo abaixo,
-// Teste Dropbox: o dashboard tentará carregar a planilha pelo link compartilhado.
-// Ordem: link direto do Dropboxusercontent, depois raw=1, depois dl=1.
+// ── CONFIGURAÇÃO DA BASE ──
+// Modo híbrido: permite carregar do Dropbox ou selecionar a planilha localmente.
+// O carregamento automático do Dropbox fica desligado para evitar travamento caso a conexão esteja lenta.
+const LOCAL_EXCEL_FILE_NAME = "Por venda_2026.xlsm";
 const HOSTED_EXCEL_URLS = [
   "https://dl.dropboxusercontent.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&st=yaw1gyip&dl=1",
   "https://www.dropbox.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&st=yaw1gyip&raw=1",
   "https://www.dropbox.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&st=yaw1gyip&dl=1"
 ];
-const AUTO_LOAD_HOSTED_EXCEL = true;
+const AUTO_LOAD_HOSTED_EXCEL = false;
 
 let allData=[], filteredData=[], charts={};
 let matrizData=[]; // dados da aba MATRIZ ANALITICO
@@ -604,10 +604,12 @@ let dashboardGoalsData=null; // dados da aba dados graf KPI / Dashboard
 let drinkAnalysisData=[]; // dados da aba ANÁLISE DRINK
 let projecaoData=null; // dados da aba Projeção
 let dadosDespesas=[]; // dados da aba Despesas para auditoria
+let drinkQtyCache={}; // cache de quantidades por mês/grupo/semana para evitar travamentos no render
 
 const DIAS  = ["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
 const HORAS = ["00:00 - 01:00","01:00 - 02:00","02:00 - 03:00","03:00 - 04:00","15:00 - 16:00","16:00 - 17:00","17:00 - 18:00","18:00 - 19:00","19:00 - 20:00","20:00 - 21:00","21:00 - 22:00","22:00 - 23:00","23:00 - 00:00"];
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+if(window.Chart){Chart.defaults.animation=false;Chart.defaults.responsiveAnimationDuration=0;}
 const PAL   = ["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00","#ff00cc","#00ffaa","#ff8c00","#7df9ff","#ff3399","#ccff00","#9b59b6"];
 
 const R  = v => "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -616,7 +618,7 @@ const NB = v => Math.round(v||0).toLocaleString("pt-BR");
 
 function cOpts(){
   return {
-    responsive:true, maintainAspectRatio:false,
+    responsive:true, maintainAspectRatio:false, animation:false,
     plugins:{
       legend:{labels:{color:"#606080",font:{family:"DM Sans",size:10},boxWidth:10,padding:8}},
       tooltip:{backgroundColor:"#18181f",borderColor:"#26263a",borderWidth:1,titleColor:"#f0f0f8",bodyColor:"#606080",
@@ -629,7 +631,7 @@ function cOpts(){
   };
 }
 
-// Upload manual removido: a base agora é carregada automaticamente da hospedagem.
+// Upload manual/local: a base é carregada a partir do arquivo escolhido pelo usuário.
 
 function setProgress(pct, step){
   const circumference = 2 * Math.PI * 70;
@@ -660,7 +662,7 @@ function load(file){
       setProgress(12, "Decodificando planilha...");
       nextFrame(()=>{
         let wb;
-        try{ wb = XLSX.read(e.target.result,{type:"array"}); }
+        try{ wb = XLSX.read(e.target.result,{type:"array",dense:true,cellFormula:false,cellHTML:false,cellStyles:false,cellText:false}); }
         catch(err){ _loadErr(err); return; }
 
         const norm = s => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");
@@ -695,6 +697,8 @@ function load(file){
             })).filter(r=>r.liquido!==0);
 
             if(!allData.length){ _loadErr(new Error("Nenhum dado valido. Verifique a aba VendasOperador.")); return; }
+
+            buildDrinkQtyCache();
 
             // Etapa 4: despesas / entradas para auditoria
             const snD = wb.SheetNames.find(n=>norm(n)==="despesas" || norm(n).includes("despesa"));
@@ -789,12 +793,13 @@ function load(file){
 
                   // Etapa 8: renderizar
                   setProgress(97, "Renderizando dashboard...");
+                  document.getElementById("dashboard").style.display="block";
                   nextFrame(()=>{
-                    applyFilters();
-                    setProgress(100, "Pronto!");
-                    nextFrame(()=>{
-                      document.getElementById("loading-screen").style.display="none";
-                      document.getElementById("dashboard").style.display="block";
+                    applyFilters(()=>{
+                      setProgress(100, "Pronto!");
+                      nextFrame(()=>{
+                        document.getElementById("loading-screen").style.display="none";
+                      });
                     });
                   });
                 });
@@ -813,7 +818,7 @@ function _loadErr(err){
   document.getElementById("dashboard").style.display="none";
   document.getElementById("upload-screen").style.display="flex";
   const status = document.getElementById("hosted-status");
-  if(status) status.innerHTML = "Erro ao processar a base hospedada: " + err.message;
+  if(status) status.innerHTML = "Erro ao processar a planilha: " + err.message;
   console.error(err);
 }
 
@@ -856,7 +861,8 @@ function anoChanged(){
   fillMs("mes", meses);
   applyFilters();
 }
-function applyFilters(){
+let renderToken=0;
+function applyFilters(done){
   const v=id=>document.getElementById(id).value;
   const ano=v("f-ano");
   filteredData=allData.filter(d=>{
@@ -871,8 +877,42 @@ function applyFilters(){
     (getMs("dia").length===0   ||getMs("dia").includes(d.dia))   &&
     (getMs("produto").length===0||getMs("produto").includes(d.produto))
   );
-  renderKPIs();renderFinanceiro();renderDrinkAnalysis();renderProjecao();renderCharts();renderTable();
-  requestAnimationFrame(applyNeonCards);
+
+  const token=++renderToken;
+  const jobs=[
+    renderKPIs,
+    renderFinanceiro,
+    renderDrinkAnalysis,
+    renderProjecao,
+    renderMensal,
+    renderCanal,
+    renderGrupo,
+    renderPgto,
+    renderDia,
+    renderHora,
+    renderTkt,
+    renderVendas,
+    renderSemana,
+    renderCustos,
+    renderKpiLinha,
+    renderDrinkVendasTicket,
+    renderTable
+  ];
+
+  const run=()=>{
+    if(token!==renderToken) return;
+    const job=jobs.shift();
+    if(!job){
+      requestAnimationFrame(applyNeonCards);
+      if(typeof done==="function") done();
+      return;
+    }
+    setTimeout(()=>{
+      try{ job(); }catch(e){ console.error("Erro ao renderizar", job.name, e); }
+      run();
+    },0);
+  };
+  run();
 }
 
 // ── MULTI-SELECT GENÉRICO ──
@@ -1037,6 +1077,21 @@ function getDrinkFilteredRows(){
   }
   return rows;
 }
+function normDrinkKey(s){
+  return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+function buildDrinkQtyCache(){
+  drinkQtyCache={};
+  allData.forEach(d=>{
+    const grupo=normDrinkKey(d.grupo);
+    const mes=normDrinkKey(d.mes);
+    const semana=Math.round(Number(d.semana||0));
+    if(!grupo||!mes||!semana) return;
+    const qtd = grupo.includes("double") ? (Number(d.qt_double)||Number(d.qt_final)||Number(d.qtd)||0) : (Number(d.qt_final)||Number(d.qtd)||0);
+    const key=mes+"|"+grupo+"|"+semana;
+    drinkQtyCache[key]=(drinkQtyCache[key]||0)+qtd;
+  });
+}
 function renderDrinkAnalysis(){
   const el=document.getElementById("drink-analysis");
   if(!el)return;
@@ -1051,11 +1106,7 @@ function renderDrinkAnalysis(){
     if(g.includes("double")) return Number(d.qt_double)||Number(d.qt_final)||Number(d.qtd)||0;
     return Number(d.qt_final)||Number(d.qtd)||0;
   };
-  const qtyFor=(mes,grupo,semana)=>{
-    const g=normTxt(grupo);
-    return allData.filter(d=>normTxt(d.mes)===normTxt(mes)&&normTxt(d.grupo)===g&&Math.round(Number(d.semana||0))===semana)
-      .reduce((s,d)=>s+qtyValue(d,grupo),0);
-  };
+  const qtyFor=(mes,grupo,semana)=>drinkQtyCache[`${normTxt(mes)}|${normTxt(grupo)}|${semana}`]||0;
   const qtyTotal=(grupo)=>rows.reduce((tot,r)=>tot+[1,2,3,4,5].reduce((s,w)=>s+qtyFor(r.mes,grupo,w),0),0);
   const fmtQty=v=>Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:0});
   const soma=(fn)=>rows.reduce((s,r)=>s+(fn(r)||0),0);
@@ -1763,7 +1814,15 @@ function renderDrinkVendasTicket(){
       (getMs("dia").length===0 || getMs("dia").includes(d.dia)) &&
       (getMs("produto").length===0 || getMs("produto").includes(d.produto));
   };
-  const available=sortMes([...new Set(allData.filter(passOtherFilters).map(d=>d.mes))].filter(Boolean));
+  const agg={};
+  allData.forEach(d=>{
+    if(!passOtherFilters(d)) return;
+    const m=d.mes; if(!m) return;
+    if(!agg[m]) agg[m]={liq:0,ven:0};
+    agg[m].liq += Number(d.liquido)||0;
+    agg[m].ven += Number(d.qtven)||0;
+  });
+  const available=sortMes(Object.keys(agg));
   if(!available.length){
     table.innerHTML='<div class="drink-combo-empty">Sem dados para montar o gráfico.</div>';
     return;
@@ -1772,16 +1831,12 @@ function renderDrinkVendasTicket(){
   const mesesSel=getMs("mes").filter(m=>available.includes(m));
   const anchor=mesesSel.length ? mesesSel.sort((a,b)=>monthSerial(a)-monthSerial(b)).at(-1) : available.at(-1);
   const aSer=monthSerial(anchor);
-  // Série no mesmo espírito do gráfico enviado: mês de referência à esquerda e meses anteriores na sequência.
   const ms=available.filter(m=>monthSerial(m)<=aSer && monthSerial(m)>=aSer-11).sort((a,b)=>monthSerial(b)-monthSerial(a));
 
-  const rowsForMonth=m=>allData.filter(d=>passOtherFilters(d)&&d.mes===m);
-  const vendas=ms.map(m=>rowsForMonth(m).reduce((s,d)=>s+(Number(d.qtven)||0),0));
+  const vendas=ms.map(m=>agg[m]?.ven||0);
   const tkt=ms.map(m=>{
-    const rows=rowsForMonth(m);
-    const liq=rows.reduce((s,d)=>s+(Number(d.liquido)||0),0);
-    const ven=rows.reduce((s,d)=>s+(Number(d.qtven)||0),0);
-    return ven>0?liq/ven:0;
+    const row=agg[m]||{liq:0,ven:0};
+    return row.ven>0?row.liq/row.ven:0;
   });
 
   const n=vendas.length;
@@ -1860,7 +1915,7 @@ function renderDrinkVendasTicket(){
   const opts={
     responsive:true,
     maintainAspectRatio:false,
-    animation:{duration:550},
+    animation:false,
     plugins:{
       legend:{position:"bottom",labels:{color:"#ffffff",font:{family:"DM Sans",size:11,weight:"800"},boxWidth:34,padding:16}},
       tooltip:{backgroundColor:"#18181f",borderColor:"#f3ff00",borderWidth:1,titleColor:"#fff",bodyColor:"#fff",
@@ -1893,18 +1948,24 @@ function getMeses(){
 
 function renderMensal(){
   dc("mensal");
-  const ms=getMeses();
-  const liq=ms.map(m=>filteredData.filter(d=>d.mes===m).reduce((s,d)=>s+d.liquido,0));
-  const ven=ms.map(m=>filteredData.filter(d=>d.mes===m&&d.qtven>0).reduce((s,d)=>s+d.qtven,0));
+  const by={};
+  filteredData.forEach(d=>{
+    const m=d.mes; if(!m)return;
+    if(!by[m]) by[m]={liq:0,ven:0};
+    by[m].liq += Number(d.liquido)||0;
+    if((Number(d.qtven)||0)>0) by[m].ven += Number(d.qtven)||0;
+  });
+  const ms=sortMes(Object.keys(by));
+  const liq=ms.map(m=>by[m].liq);
+  const ven=ms.map(m=>by[m].ven);
   const tkt=ms.map((m,i)=>ven[i]>0?liq[i]/ven[i]:0);
   const o=cOpts();o.plugins.legend.display=true;
-  // dual axis: bars for values, line for ticket
   o.scales.y1={position:"right",ticks:{color:"#a78bfa",font:{family:"DM Sans",size:10},callback:v=>"R$"+v.toFixed(0)},grid:{drawOnChartArea:false}};
   o.plugins.tooltip.callbacks.label=c=>" "+c.dataset.label+": "+(c.dataset.yAxisID==="y1"?R(c.raw):R(c.raw));
   charts["mensal"]=new Chart(document.getElementById("c-mensal").getContext("2d"),{
     type:"bar",data:{labels:ms,datasets:[
-      {label:"L\u00edquido", data:liq, backgroundColor:"#f5a62399", borderColor:"#f5a623", borderWidth:2, borderRadius:5, yAxisID:"y"},
-      {label:"Ticket M\u00e9dio", data:tkt, type:"line", borderColor:"#a78bfa", backgroundColor:"transparent", borderWidth:2.5, pointRadius:5, pointBackgroundColor:"#a78bfa", tension:.3, yAxisID:"y1"}
+      {label:"Líquido", data:liq, backgroundColor:"#f5a62399", borderColor:"#f5a623", borderWidth:2, borderRadius:5, yAxisID:"y"},
+      {label:"Ticket Médio", data:tkt, type:"line", borderColor:"#a78bfa", backgroundColor:"transparent", borderWidth:2.5, pointRadius:5, pointBackgroundColor:"#a78bfa", tension:.3, yAxisID:"y1"}
     ]},options:o
   });
 }
@@ -1975,20 +2036,23 @@ function renderHora(){
 
 function renderTkt(){
   dc("tkt");
-  const ms=getMeses();
-  const V=ms.map(m=>{
-    const rows=filteredData.filter(d=>d.mes===m);
-    const liq=rows.reduce((s,d)=>s+d.liquido,0);
-    const ven=rows.reduce((s,d)=>s+d.qtven,0);
-    return ven>0?liq/ven:0;
+  const by={};
+  filteredData.forEach(d=>{
+    const m=d.mes; if(!m)return;
+    if(!by[m]) by[m]={liq:0,ven:0};
+    by[m].liq += Number(d.liquido)||0;
+    by[m].ven += Number(d.qtven)||0;
   });
+  const ms=sortMes(Object.keys(by));
+  const V=ms.map(m=>by[m].ven>0?by[m].liq/by[m].ven:0);
   const o=cOpts();o.plugins.legend.display=false;
   o.scales.y.ticks.callback=v=>"R$"+v.toFixed(0);
   charts["tkt"]=new Chart(document.getElementById("c-tkt").getContext("2d"),{
     type:"line",data:{labels:ms,
-    datasets:[{label:"Ticket M\u00e9dio",data:V,borderColor:"#a78bfa",backgroundColor:"rgba(167,139,250,.15)",borderWidth:2.5,pointRadius:5,pointHoverRadius:7,tension:.3,fill:true}]},options:o
+    datasets:[{label:"Ticket Médio",data:V,borderColor:"#a78bfa",backgroundColor:"rgba(167,139,250,.15)",borderWidth:2.5,pointRadius:5,pointHoverRadius:7,tension:.3,fill:true}]},options:o
   });
 }
+
 
 
 // VENDAS CHARTS
@@ -2000,12 +2064,19 @@ function renderVendas(){
 function renderVendasHeatmap(){
   dc("vendas-heatmap");
   const ms=getMeses();
-  const DIAS_LBL=["Seg","Ter","Qua","Qui","Sex","S\u00e1b","Dom"];
-  const DIAS_FULL=["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
-
+  const DIAS_LBL=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+  const DIAS_FULL=["Segunda","Terça","Quarta","Quinta","Sábado","Domingo"];
+  // mantém Sexta na posição correta
+  DIAS_FULL.splice(4,0,"Sexta");
+  const by={};
+  filteredData.forEach(d=>{
+    if(!(Number(d.qtven)>0)) return;
+    const key=(d.mes||"")+"|"+(d.dia||"");
+    by[key]=(by[key]||0)+(Number(d.qtven)||0);
+  });
   const datasets=DIAS_FULL.map((dia,i)=>({
     label:DIAS_LBL[i],
-    data:ms.map(m=>filteredData.filter(d=>d.mes===m&&d.dia===dia&&d.qtven>0).reduce((s,d)=>s+d.qtven,0)),
+    data:ms.map(m=>by[m+"|"+dia]||0),
     backgroundColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i]+"bb",
     borderColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i],
     borderWidth:1,borderRadius:4,
@@ -2028,96 +2099,19 @@ function renderVendasHeatmap(){
 function renderVendasHora(){
   dc("vendas-hora");
   const by={};
-  filteredData.filter(d=>d.qtven>0).forEach(d=>{
-    const h=d.hora; by[h]=(by[h]||0)+d.qtven;
+  filteredData.forEach(d=>{
+    if(!(Number(d.qtven)>0)) return;
+    const h=d.hora; by[h]=(by[h]||0)+(Number(d.qtven)||0);
   });
   const horas=Object.keys(by).sort();
   const vals=horas.map(h=>by[h]);
-  const maxV=Math.max(...vals);
+  const maxV=Math.max(...vals,1);
 
   const o=cOpts();
   o.plugins.legend.display=false;
   o.scales.y.ticks.callback=v=>NB(v);
   o.plugins.tooltip.callbacks.label=ctx=>` ${NB(ctx.raw)} vendas`;
 
-  // gradient colors by intensity
-  const colors=vals.map(v=>{
-    const t=v/maxV;
-    if(t>0.8)return"#f5a623";
-    if(t>0.6)return"#f97316";
-    if(t>0.4)return"#fbbf24";
-    if(t>0.2)return"#a78bfa";
-    return"#606080";
-  });
-
-  charts["vendas-hora"]=new Chart(document.getElementById("c-vendas-hora").getContext("2d"),{
-    type:"bar",
-    data:{
-      labels:horas.map(h=>h.split(" - ")[0]),
-      datasets:[{
-        label:"Vendas",
-        data:vals,
-        backgroundColor:colors,
-        borderColor:colors,
-        borderWidth:0,
-        borderRadius:6,
-        borderSkipped:false,
-      }]
-    },
-    options:o
-  });
-}
-
-// VENDAS CHARTS
-function renderVendas(){
-  renderVendasHeatmap();
-  renderVendasHora();
-}
-
-function renderVendasHeatmap(){
-  dc("vendas-heatmap");
-  const ms=getMeses();
-  const DIAS_LBL=["Seg","Ter","Qua","Qui","Sex","S\u00e1b","Dom"];
-  const DIAS_FULL=["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
-
-  const datasets=DIAS_FULL.map((dia,i)=>({
-    label:DIAS_LBL[i],
-    data:ms.map(m=>filteredData.filter(d=>d.mes===m&&d.dia===dia&&d.qtven>0).reduce((s,d)=>s+d.qtven,0)),
-    backgroundColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i]+"bb",
-    borderColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i],
-    borderWidth:1,borderRadius:4,
-  }));
-
-  const o=cOpts();
-  o.plugins.legend.display=true;
-  o.scales.x.stacked=true;
-  o.scales.y.stacked=true;
-  o.scales.y.ticks.callback=v=>NB(v);
-  o.plugins.tooltip.callbacks.label=ctx=>` ${ctx.dataset.label}: ${NB(ctx.raw)} vendas`;
-
-  charts["vendas-heatmap"]=new Chart(document.getElementById("c-vendas-heatmap").getContext("2d"),{
-    type:"bar",
-    data:{labels:ms,datasets},
-    options:o
-  });
-}
-
-function renderVendasHora(){
-  dc("vendas-hora");
-  const by={};
-  filteredData.filter(d=>d.qtven>0).forEach(d=>{
-    const h=d.hora; by[h]=(by[h]||0)+d.qtven;
-  });
-  const horas=Object.keys(by).sort();
-  const vals=horas.map(h=>by[h]);
-  const maxV=Math.max(...vals);
-
-  const o=cOpts();
-  o.plugins.legend.display=false;
-  o.scales.y.ticks.callback=v=>NB(v);
-  o.plugins.tooltip.callbacks.label=ctx=>` ${NB(ctx.raw)} vendas`;
-
-  // gradient colors by intensity
   const colors=vals.map(v=>{
     const t=v/maxV;
     if(t>0.8)return"#f5a623";
@@ -2151,8 +2145,15 @@ function renderSemana(){
   const ms=getMeses();
   const CORES=["#f5a623","#22c55e","#00cfff","#a78bfa","#ef4444"];
   const semanas=[1,2,3,4,5];
+  const by={};
+  filteredData.forEach(d=>{
+    const s=Math.round(Number(d.semana)||0);
+    if(!s) return;
+    const key=(d.mes||"")+"|"+s;
+    by[key]=(by[key]||0)+(Number(d.liquido)||0);
+  });
   const datasets=semanas.map((s,i)=>{
-    const vals=ms.map(m=>filteredData.filter(d=>d.mes===m&&Math.round(d.semana)===s).reduce((acc,d)=>acc+d.liquido,0));
+    const vals=ms.map(m=>by[m+"|"+s]||0);
     const hasData=vals.some(v=>v>0);
     if(!hasData)return null;
     return {
@@ -2165,11 +2166,10 @@ function renderSemana(){
     };
   }).filter(Boolean);
 
-  // barThickness dinâmico: divide o espaço disponível pelo nº de grupos × datasets
   const nMeses = ms.length||1;
   const nDS    = datasets.length||1;
   const containerW = (document.getElementById("c-semana")||{}).parentElement?.offsetWidth || 800;
-  const spacePerMes = (containerW - 60) / nMeses;     // 60px reservado pro eixo Y
+  const spacePerMes = (containerW - 60) / nMeses;
   const bt = Math.max(4, Math.floor(spacePerMes / nDS) - 3);
 
   datasets.forEach(d=>d.barThickness=bt);
@@ -2665,63 +2665,138 @@ function auditarProdutos(){
 }
 
 
-// ── CARREGAMENTO AUTOMÁTICO DA PLANILHA HOSPEDADA ──
+
+// ── CARREGAMENTO VIA DROPBOX ──
+async function fetchArrayBufferWithProgress(url){
+  const response = await fetch(url, {cache:"no-store", mode:"cors"});
+  if(!response.ok) throw new Error("HTTP " + response.status + " ao baixar a planilha.");
+
+  const total = Number(response.headers.get("content-length")) || 0;
+  if(!response.body || !response.body.getReader){
+    setProgress(8, "Baixando planilha do Dropbox...");
+    return await response.arrayBuffer();
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    chunks.push(value);
+    received += value.length;
+    if(total){
+      const pctDownload = Math.min(22, 2 + (received / total) * 20);
+      setProgress(pctDownload, "Baixando Dropbox: " + Math.round((received / total) * 100) + "%");
+    }else{
+      const mb = (received / 1024 / 1024).toFixed(1).replace('.', ',');
+      setProgress(12, "Baixando Dropbox: " + mb + " MB");
+    }
+    await new Promise(requestAnimationFrame);
+  }
+
+  const buffer = new Uint8Array(received);
+  let offset = 0;
+  for(const chunk of chunks){
+    buffer.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return buffer.buffer;
+}
+
 async function loadHostedExcel(){
   const status = document.getElementById("hosted-status");
-  const setStatus = msg => { if(status) status.textContent = msg; };
-  let lastErr = null;
-  try{
-    document.getElementById("dashboard").style.display="none";
-    document.getElementById("upload-screen").style.display="none";
-    document.getElementById("loading-screen").style.display="flex";
-    setProgress(5, "Buscando base no Dropbox...");
-    setStatus("Buscando base no Dropbox...");
+  if(status) status.textContent = "Iniciando download da planilha no Dropbox...";
+  document.getElementById("upload-screen").style.display = "none";
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("loading-screen").style.display = "flex";
+  setProgress(1, "Conectando ao Dropbox...");
 
-    for(let i=0;i<HOSTED_EXCEL_URLS.length;i++){
-      const url = HOSTED_EXCEL_URLS[i];
-      try{
-        setProgress(8 + i*4, "Tentando link Dropbox " + (i+1) + "...");
-        const resp = await fetch(url, {cache:"no-store", redirect:"follow"});
-        if(!resp.ok){
-          throw new Error("HTTP " + resp.status);
-        }
-        const blob = await resp.blob();
-        if(!blob || blob.size < 1000){
-          throw new Error("arquivo vazio ou inválido");
-        }
-        const file = new File([blob], "Por_venda_2026.xlsm", {
-          type:"application/vnd.ms-excel.sheet.macroEnabled.12"
-        });
-        load(file);
-        return;
-      }catch(errLink){
-        lastErr = errLink;
-        console.warn("Falha no link Dropbox " + (i+1) + ":", errLink);
-      }
+  let lastErr = null;
+  for(const url of HOSTED_EXCEL_URLS){
+    try{
+      const arrayBuffer = await fetchArrayBufferWithProgress(url);
+      setProgress(24, "Dropbox concluído. Preparando leitura...");
+      const blob = new Blob([arrayBuffer], {type:"application/vnd.ms-excel.sheet.macroEnabled.12"});
+      const file = new File([blob], LOCAL_EXCEL_FILE_NAME, {type:blob.type});
+      load(file);
+      return;
+    }catch(err){
+      lastErr = err;
+      console.warn("Falha ao carregar URL do Dropbox", err);
     }
-    throw lastErr || new Error("Nenhum link do Dropbox funcionou.");
-  }catch(err){
-    console.warn("Falha ao carregar base Dropbox:", err);
-    document.getElementById("loading-screen").style.display="none";
-    document.getElementById("dashboard").style.display="none";
-    document.getElementById("upload-screen").style.display="flex";
-    setStatus("Não consegui carregar a base pelo Dropbox. Se isso acontecer publicado no GitHub Pages, provavelmente é bloqueio de CORS/redirecionamento do Dropbox.");
+  }
+
+  _loadErr(new Error("Não foi possível carregar a planilha no Dropbox. Use o botão SELECIONAR ARQUIVO como fallback. Detalhe: " + (lastErr ? lastErr.message : "erro desconhecido")));
+}
+
+// ── CARREGAMENTO LOCAL DA PLANILHA ──
+function showUploadScreen(){
+  document.getElementById("loading-screen").style.display = "none";
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("upload-screen").style.display = "flex";
+  const status = document.getElementById("hosted-status");
+  if(status) status.textContent = "Teste Dropbox ou selecione/arraste a planilha local do computador.";
+}
+
+function setupLocalUpload(){
+  const fileInput = document.getElementById("file-input");
+  const dropZone  = document.getElementById("drop-zone");
+  const status    = document.getElementById("hosted-status");
+
+  const setStatus = msg => { if(status) status.textContent = msg; };
+  const isExcel = file => /\.(xlsx|xls|xlsm)$/i.test(file?.name || "");
+
+  function handleLocalFile(file){
+    if(!file){
+      setStatus("Nenhum arquivo selecionado.");
+      return;
+    }
+    if(!isExcel(file)){
+      setStatus("Arquivo inválido. Selecione uma planilha .xlsx, .xls ou .xlsm.");
+      return;
+    }
+    load(file);
+  }
+
+  if(fileInput){
+    fileInput.addEventListener("click", () => { fileInput.value = ""; });
+    fileInput.addEventListener("change", e => handleLocalFile(e.target.files && e.target.files[0]));
+  }
+
+  if(dropZone){
+    dropZone.addEventListener("click", e => {
+      if(e.target && e.target.closest("button")) return;
+      if(fileInput) fileInput.click();
+    });
+    ["dragenter","dragover"].forEach(evt => {
+      dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add("drag");
+      });
+    });
+    ["dragleave","dragend","drop"].forEach(evt => {
+      dropZone.addEventListener(evt, e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove("drag");
+      });
+    });
+    dropZone.addEventListener("drop", e => {
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      handleLocalFile(file);
+    });
+  }
+
+  showUploadScreen();
+  if(AUTO_LOAD_HOSTED_EXCEL){
+    setTimeout(loadHostedExcel, 350);
   }
 }
 
-// Em arquivo local (file://), navegadores costumam bloquear fetch de arquivo local.
-// Quando publicado em HTTPS/HTTP, o dashboard tenta abrir a planilha automaticamente.
-window.addEventListener("DOMContentLoaded", () => {
-  if(AUTO_LOAD_HOSTED_EXCEL && location.protocol !== "file:"){
-    loadHostedExcel();
-  } else {
-    document.getElementById("loading-screen").style.display="none";
-    document.getElementById("dashboard").style.display="none";
-    document.getElementById("upload-screen").style.display="flex";
-    const status = document.getElementById("hosted-status");
-    if(status) status.innerHTML = "Para testar corretamente, publique este HTML no GitHub Pages. Abrir direto no computador como file:// pode bloquear o carregamento automático.";
-  }
-});
+window.addEventListener("DOMContentLoaded", setupLocalUpload);
 
 </script>
 </body>
