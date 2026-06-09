@@ -913,6 +913,114 @@
   }
 
 
+
+  /* ── AJUSTE V8: GRÁFICOS MAIS VIBRANTES + TOQUE MOBILE MAIS SENSÍVEL ── */
+  .chart-card{
+    background:linear-gradient(180deg,#1a1a21 0%,#14141d 100%)!important;
+  }
+  .chart-card h3{
+    color:#ffffff!important;
+    text-shadow:0 0 12px rgba(255,255,255,.16)!important;
+  }
+  .chart-wrap canvas,.drink-combo-wrap canvas{
+    filter:saturate(1.18) contrast(1.06);
+  }
+  .filter-group select,#mes-btn,#grupo-btn,#semana-btn,#dia-btn,#produto-btn,.single-filter-btn,
+  .single-filter-option,.ms-opt{
+    touch-action:manipulation!important;
+    -webkit-tap-highlight-color:rgba(245,166,35,.24)!important;
+  }
+  .single-filter-option,.ms-opt{
+    min-height:42px!important;
+    display:flex!important;
+    align-items:center!important;
+  }
+  .single-filter-option:active,.ms-opt:active,#mes-btn:active,#grupo-btn:active,#semana-btn:active,#dia-btn:active,#produto-btn:active,.single-filter-btn:active{
+    transform:scale(.985);
+    border-color:#ffb000!important;
+    box-shadow:0 0 18px rgba(255,176,0,.26)!important;
+  }
+  @media(pointer:coarse){
+    .filter-group select,#mes-btn,#grupo-btn,#semana-btn,#dia-btn,#produto-btn,.single-filter-btn{
+      min-height:44px!important;
+      font-weight:950!important;
+    }
+    .single-filter-option,.ms-opt{
+      min-height:46px!important;
+      padding:11px 14px!important;
+      font-size:.94rem!important;
+      line-height:1.1!important;
+    }
+    .ms-chk{
+      width:18px!important;
+      height:18px!important;
+      border-radius:5px!important;
+    }
+  }
+  @media(pointer:coarse) and (orientation:landscape){
+    .filter-group select,#mes-btn,#grupo-btn,#semana-btn,#dia-btn,#produto-btn,.single-filter-btn{
+      min-height:40px!important;
+      height:40px!important;
+      font-size:.82rem!important;
+      padding:.38rem .48rem!important;
+    }
+    .single-filter-option,.ms-opt{
+      min-height:42px!important;
+      padding:10px 12px!important;
+      font-size:.88rem!important;
+    }
+  }
+
+
+  /* ── AJUSTE V9: CARDS RECEITA/DESPESAS MAIS ELEGANTES + BARRAS NEON ── */
+  .fin-zone.receita{
+    --neon-card:#39ff14!important;
+    --neon-rgb:57,255,20!important;
+    background:linear-gradient(180deg,#1a1a21 0%,#111119 58%,#0d0d14 100%)!important;
+    border:1px solid rgba(255,255,255,.09)!important;
+    border-top:3px solid #39ff14!important;
+    box-shadow:0 0 0 1px rgba(57,255,20,.08),0 12px 30px rgba(0,0,0,.42)!important;
+  }
+  .fin-zone.despesas{
+    --neon-card:#ff355e!important;
+    --neon-rgb:255,53,94!important;
+    background:linear-gradient(180deg,#1a1a21 0%,#111119 58%,#0d0d14 100%)!important;
+    border:1px solid rgba(255,255,255,.09)!important;
+    border-top:3px solid #ff355e!important;
+    box-shadow:0 0 0 1px rgba(255,53,94,.08),0 12px 30px rgba(0,0,0,.42)!important;
+  }
+  .fin-zone.receita::after{
+    background:linear-gradient(180deg,rgba(57,255,20,.13),rgba(57,255,20,0) 62%)!important;
+    opacity:.70!important;
+  }
+  .fin-zone.despesas::after{
+    background:linear-gradient(180deg,rgba(255,53,94,.13),rgba(255,53,94,0) 62%)!important;
+    opacity:.70!important;
+  }
+  .fin-zone.receita:hover,.fin-zone.receita:active{
+    border-top-color:#39ff14!important;
+    box-shadow:0 -1px 0 #39ff14,0 0 18px rgba(57,255,20,.32),0 16px 36px rgba(0,0,0,.48)!important;
+  }
+  .fin-zone.despesas:hover,.fin-zone.despesas:active{
+    border-top-color:#ff355e!important;
+    box-shadow:0 -1px 0 #ff355e,0 0 18px rgba(255,53,94,.32),0 16px 36px rgba(0,0,0,.48)!important;
+  }
+  .fin-zone.receita .fin-zone-title{color:#eaffea!important}
+  .fin-zone.despesas .fin-zone-title{color:#ffe8ee!important}
+  .fin-zone.receita .dot{background:#39ff14!important;box-shadow:0 0 9px #39ff14!important}
+  .fin-zone.despesas .dot{background:#ff6b6b!important;box-shadow:0 0 9px #ff6b6b!important}
+
+  .chart-card:not(.drink-combo-card){
+    border-top-color:var(--neon-card,#39ff14)!important;
+  }
+  .chart-card canvas{
+    filter:saturate(1.26) contrast(1.08)!important;
+  }
+  @media(pointer:coarse){
+    body.is-updating::before{content:"Atualizando..."!important;opacity:.82!important}
+    .single-filter-option,.ms-opt{min-height:48px!important}
+  }
+
 </style>
 </head>
 <body>
@@ -1071,7 +1179,7 @@
     <div class="section-title">Proje&ccedil;&atilde;o de Receita <span class="tag">PROJE&Ccedil;&Atilde;O</span></div>
     <div id="proj-section" style="margin-bottom:1.5rem"></div>
     <div class="chart-grid-3" style="margin-bottom:1.5rem">
-      <div class="chart-card"><h3>L&iacute;quido &amp; Bruto por M&ecirc;s</h3><div class="chart-wrap"><canvas id="c-mensal" height="240"></canvas></div></div>
+      <div class="chart-card"><h3>Bruto por M&ecirc;s &amp; Ticket M&eacute;dio</h3><div class="chart-wrap"><canvas id="c-mensal" height="240"></canvas></div></div>
       <div class="chart-card"><h3>Distribui&ccedil;&atilde;o por Canal</h3><div class="chart-wrap"><canvas id="c-canal" height="240"></canvas></div></div>
     </div>
 
@@ -1180,7 +1288,8 @@ const DIAS  = ["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","D
 const HORAS = ["00:00 - 01:00","01:00 - 02:00","02:00 - 03:00","03:00 - 04:00","15:00 - 16:00","16:00 - 17:00","17:00 - 18:00","18:00 - 19:00","19:00 - 20:00","20:00 - 21:00","21:00 - 22:00","22:00 - 23:00","23:00 - 00:00"];
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 if(window.Chart){Chart.defaults.animation=false;Chart.defaults.responsiveAnimationDuration=0;}
-const PAL   = ["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00","#ff00cc","#00ffaa","#ff8c00","#7df9ff","#ff3399","#ccff00","#9b59b6"];
+const PAL   = ["#ffb000","#39ff14","#00e5ff","#ff2d95","#a855f7","#ff355e","#f3ff00","#00ffaa","#ff7a00","#7df9ff","#ff5ea8","#ccff00","#00a8ff","#ff00cc"];
+const BAR_NEON = ["#39ff14","#ff2d95","#00e5ff","#a855f7","#ff7a00","#f3ff00","#00ffaa","#ff355e","#7df9ff","#ccff00"];
 
 const R  = v => "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const RK = v => v>=1e6?"R$ "+(v/1e6).toFixed(1)+"M":v>=1e3?"R$ "+(v/1e3).toFixed(0)+"K":"R$ "+Math.round(v);
@@ -1190,13 +1299,13 @@ function cOpts(){
   return {
     responsive:true, maintainAspectRatio:false, animation:false,
     plugins:{
-      legend:{labels:{color:"#606080",font:{family:"DM Sans",size:10},boxWidth:10,padding:8}},
-      tooltip:{backgroundColor:"#18181f",borderColor:"#26263a",borderWidth:1,titleColor:"#f0f0f8",bodyColor:"#606080",
+      legend:{labels:{color:"#f8fafc",font:{family:"DM Sans",size:10,weight:"850"},boxWidth:12,padding:9}},
+      tooltip:{backgroundColor:"#111118",borderColor:"#00e5ff",borderWidth:1,titleColor:"#ffffff",bodyColor:"#f8fafc",
         callbacks:{label:c=>" "+(c.dataset.label||c.label)+": "+R(c.raw)}}
     },
     scales:{
-      x:{ticks:{color:"#606080",font:{family:"DM Sans",size:10}},grid:{color:"#1c1c28"}},
-      y:{ticks:{color:"#606080",font:{family:"DM Sans",size:10},callback:v=>RK(v)},grid:{color:"#1c1c28"}}
+      x:{ticks:{color:"#d9d6ff",font:{family:"DM Sans",size:10,weight:"800"}},grid:{color:"rgba(255,255,255,.07)"}},
+      y:{ticks:{color:"#d9d6ff",font:{family:"DM Sans",size:10,weight:"800"},callback:v=>RK(v)},grid:{color:"rgba(255,255,255,.07)"}}
     }
   };
 }
@@ -1441,7 +1550,8 @@ function isMobileView(){
 function scheduleApplyFilters(done){
   if(filterTimer) clearTimeout(filterTimer);
   document.body.classList.add("is-updating");
-  const delay=isMobileView()?190:70;
+  const ddOpen=["mes","semana","dia","produto","grupo"].some(k=>{const d=document.getElementById(k+"-dropdown");return d&&d.style.display==="block";}) || ["f-ano","f-tipo","f-pgto"].some(k=>{const d=document.getElementById(k+"-single-dropdown");return d&&d.style.display==="block";});
+  const delay=isMobileView() ? (ddOpen?220:120) : 70;
   filterTimer=setTimeout(()=>{
     filterTimer=null;
     applyFilters(()=>{
@@ -1452,8 +1562,11 @@ function scheduleApplyFilters(done){
 }
 function runRenderStep(fn){
   const runner=()=>fn();
-  if(isMobileView() && "requestIdleCallback" in window){
-    requestIdleCallback(runner,{timeout:180});
+  // No celular, pequenos respiros entre os blocos evitam a sensação de congelamento dos filtros.
+  if(isMobileView()){
+    setTimeout(runner,8);
+  }else if("requestIdleCallback" in window){
+    requestIdleCallback(runner,{timeout:120});
   }else{
     setTimeout(runner,0);
   }
@@ -1469,20 +1582,28 @@ function resizeDashboardCharts(){
 window.addEventListener("resize",resizeDashboardCharts,{passive:true});
 window.addEventListener("orientationchange",()=>setTimeout(resizeDashboardCharts,380),{passive:true});
 function applyFilters(done){
-  const v=id=>document.getElementById(id).value;
-  const ano=v("f-ano");
+  const getVal=id=>document.getElementById(id)?.value||"";
+  const ano=getVal("f-ano");
+  const mesSel=getMs("mes"), semanaSel=getMs("semana"), grupoSel=getMs("grupo"), diaSel=getMs("dia"), produtoSel=getMs("produto");
+  const mesSet=new Set(mesSel), semanaSet=new Set(semanaSel), grupoSet=new Set(grupoSel), diaSet=new Set(diaSel), produtoSet=new Set(produtoSel);
+  const tipo=getVal("f-tipo"), pgto=getVal("f-pgto");
+
   filteredData=allData.filter(d=>{
-    if(ano){const p=d.mes.split("/");const y=p[1]?String(parseInt(p[1])+(parseInt(p[1])<100?2000:0)):"";if(y!==ano)return false;}
+    if(ano){
+      const p=String(d.mes||"").split("/");
+      const yy=parseInt(p[1]||0);
+      const y=p[1]?String(yy+(yy<100?2000:0)):"";
+      if(y!==ano) return false;
+    }
+    if(mesSel.length && !mesSet.has(d.mes)) return false;
+    if(semanaSel.length && !semanaSet.has(String(Math.round(d.semana)))) return false;
+    if(grupoSel.length && !grupoSet.has(d.grupo)) return false;
+    if(tipo && d.tipo!==tipo) return false;
+    if(pgto && d.pgto!==pgto) return false;
+    if(diaSel.length && !diaSet.has(d.dia)) return false;
+    if(produtoSel.length && !produtoSet.has(d.produto)) return false;
     return true;
-  }).filter(d=>
-    (getMs("mes").length===0    ||getMs("mes").includes(d.mes))    &&
-    (getMs("semana").length===0 ||getMs("semana").includes(String(Math.round(d.semana)))) &&
-    (getMs("grupo").length===0 ||getMs("grupo").includes(d.grupo)) &&
-    (!v("f-tipo")   ||d.tipo   ===v("f-tipo"))   &&
-    (!v("f-pgto")   ||d.pgto   ===v("f-pgto"))   &&
-    (getMs("dia").length===0   ||getMs("dia").includes(d.dia))   &&
-    (getMs("produto").length===0||getMs("produto").includes(d.produto))
-  );
+  });
 
   const token=++renderToken;
   const jobs=[
@@ -1518,7 +1639,7 @@ function applyFilters(done){
       run();
     });
   };
-  run();
+  requestAnimationFrame(run);
 }
 
 
@@ -1549,7 +1670,7 @@ function renderSingleOptions(id){
   const lbl=document.getElementById(id+"-single-label");
   if(!sel||!dd||!lbl) return;
   const opts=[...sel.options];
-  dd.innerHTML=opts.map(o=>`<div class="single-filter-option ${o.value===sel.value?'on':''}" data-val="${String(o.value).replace(/"/g,'&quot;')}" onclick="selectSingleFilter('${id}', this.dataset.val)">${o.textContent}</div>`).join("");
+  dd.innerHTML=opts.map(o=>`<div class="single-filter-option ${o.value===sel.value?'on':''}" data-val="${String(o.value).replace(/"/g,'&quot;')}" onpointerup="event.preventDefault();selectSingleFilter('${id}', this.dataset.val)">${o.textContent}</div>`).join("");
   const opt=opts.find(o=>o.value===sel.value);
   lbl.textContent=opt?opt.textContent:"Todos";
 }
@@ -1582,9 +1703,9 @@ function fillMs(key, vals){
   const container=document.getElementById(key+"-options");
   if(!container) return;
   container.innerHTML=vals.map(v=>`
-    <div class="ms-opt" data-key="${key}" data-val="${v}" onclick="toggleMsOpt(this)"
-      style="padding:6px 14px;cursor:pointer;font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px">
-      <span class="ms-chk" style="width:14px;height:14px;border:1.5px solid rgba(255,255,255,.92);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px"></span>
+    <div class="ms-opt" data-key="${key}" data-val="${v}" onpointerup="event.preventDefault();toggleMsOpt(this)"
+      style="padding:9px 14px;min-height:42px;cursor:pointer;font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:9px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(245,166,35,.22)">
+      <span class="ms-chk" style="width:17px;height:17px;border:1.5px solid rgba(255,255,255,.92);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px"></span>
       <span>${v}</span>
     </div>`).join("");
 }
@@ -2612,21 +2733,25 @@ function renderMensal(){
   const by={};
   filteredData.forEach(d=>{
     const m=d.mes; if(!m)return;
-    if(!by[m]) by[m]={liq:0,ven:0};
+    if(!by[m]) by[m]={bruto:0,liq:0,ven:0};
+    by[m].bruto += Number(d.total)||0;
     by[m].liq += Number(d.liquido)||0;
     if((Number(d.qtven)||0)>0) by[m].ven += Number(d.qtven)||0;
   });
   const ms=sortMes(Object.keys(by));
+  const bruto=ms.map(m=>by[m].bruto);
   const liq=ms.map(m=>by[m].liq);
   const ven=ms.map(m=>by[m].ven);
   const tkt=ms.map((m,i)=>ven[i]>0?liq[i]/ven[i]:0);
   const o=cOpts();o.plugins.legend.display=true;
-  o.scales.y1={position:"right",ticks:{color:"#a78bfa",font:{family:"DM Sans",size:10},callback:v=>"R$"+v.toFixed(0)},grid:{drawOnChartArea:false}};
-  o.plugins.tooltip.callbacks.label=c=>" "+c.dataset.label+": "+(c.dataset.yAxisID==="y1"?R(c.raw):R(c.raw));
+  o.scales.y.ticks.color="#ffd166";
+  o.scales.y.grid.color="rgba(255,176,0,.10)";
+  o.scales.y1={position:"right",ticks:{color:"#00e5ff",font:{family:"DM Sans",size:11,weight:"950"},callback:v=>"R$"+v.toFixed(0)},grid:{drawOnChartArea:false}};
+  o.plugins.tooltip.callbacks.label=c=>" "+c.dataset.label+": "+R(c.raw);
   charts["mensal"]=new Chart(document.getElementById("c-mensal").getContext("2d"),{
     type:"bar",data:{labels:ms,datasets:[
-      {label:"Líquido", data:liq, backgroundColor:"#f5a62399", borderColor:"#f5a623", borderWidth:2, borderRadius:5, yAxisID:"y"},
-      {label:"Ticket Médio", data:tkt, type:"line", borderColor:"#a78bfa", backgroundColor:"transparent", borderWidth:2.5, pointRadius:5, pointBackgroundColor:"#a78bfa", tension:.3, yAxisID:"y1"}
+      {label:"Bruto", data:bruto, backgroundColor:"rgba(57,255,20,.82)", hoverBackgroundColor:"rgba(184,255,0,.94)", borderColor:"#b8ff00", borderWidth:2.8, borderRadius:7, yAxisID:"y"},
+      {label:"Ticket Médio", data:tkt, type:"line", borderColor:"#00f5ff", backgroundColor:"#00f5ff", borderWidth:4.6, pointRadius:6.5, pointHoverRadius:8.5, pointBackgroundColor:"#00f5ff", pointBorderColor:"#ffffff", pointBorderWidth:2.4, tension:.34, yAxisID:"y1"}
     ]},options:o
   });
 }
@@ -2652,7 +2777,7 @@ function renderGrupo(){
   const o=cOpts();o.indexAxis="y";o.plugins.legend.display=false;
   o.scales.x.ticks.callback=v=>RK(v);delete o.scales.y.ticks.callback;
   charts["grupo"]=new Chart(document.getElementById("c-grupo").getContext("2d"),{
-    type:"bar",data:{labels:s.map(([k])=>k),datasets:[{label:"L\u00edquido",data:s.map(([,v])=>v),backgroundColor:PAL.map(c=>c+"cc"),borderRadius:4}]},options:o
+    type:"bar",data:{labels:s.map(([k])=>k),datasets:[{label:"L\u00edquido",data:s.map(([,v])=>v),backgroundColor:s.map((_,i)=>BAR_NEON[i%BAR_NEON.length]+"dd"),borderColor:s.map((_,i)=>BAR_NEON[i%BAR_NEON.length]),borderWidth:2,borderRadius:6}]},options:o
   });
 }
 
@@ -2678,7 +2803,7 @@ function renderDia(){
   const o=cOpts();o.plugins.legend.display=false;
   charts["dia"]=new Chart(document.getElementById("c-dia").getContext("2d"),{
     type:"bar",data:{labels:["Seg","Ter","Qua","Qui","Sex","S\u00e1b","Dom"],
-    datasets:[{label:"L\u00edquido",data:V,backgroundColor:V.map(v=>v===mx?"#f5a623":"#f5a62355"),borderColor:V.map(v=>v===mx?"#f5a623":"#f5a62388"),borderWidth:1,borderRadius:4}]},options:o
+    datasets:[{label:"L\u00edquido",data:V,backgroundColor:V.map((v,i)=>BAR_NEON[i%BAR_NEON.length]+(v===mx?"ee":"aa")),borderColor:V.map((v,i)=>BAR_NEON[i%BAR_NEON.length]),borderWidth:2,borderRadius:6}]},options:o
   });
 }
 
@@ -2691,7 +2816,7 @@ function renderHora(){
   const o=cOpts();o.plugins.legend.display=false;
   charts["hora"]=new Chart(document.getElementById("c-hora").getContext("2d"),{
     type:"line",data:{labels:horas.map(h=>h.split(" - ")[0]),
-    datasets:[{label:"L\u00edquido",data:V,borderColor:"#f5a623",backgroundColor:"rgba(245,166,35,.15)",borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.4,fill:true}]},options:o
+    datasets:[{label:"L\u00edquido",data:V,borderColor:"#00e5ff",backgroundColor:"rgba(0,229,255,.18)",borderWidth:3,pointRadius:4,pointHoverRadius:7,tension:.4,fill:true}]},options:o
   });
 }
 
@@ -2710,7 +2835,7 @@ function renderTkt(){
   o.scales.y.ticks.callback=v=>"R$"+v.toFixed(0);
   charts["tkt"]=new Chart(document.getElementById("c-tkt").getContext("2d"),{
     type:"line",data:{labels:ms,
-    datasets:[{label:"Ticket Médio",data:V,borderColor:"#a78bfa",backgroundColor:"rgba(167,139,250,.15)",borderWidth:2.5,pointRadius:5,pointHoverRadius:7,tension:.3,fill:true}]},options:o
+    datasets:[{label:"Ticket Médio",data:V,borderColor:"#00e5ff",backgroundColor:"rgba(0,229,255,.18)",borderWidth:3.5,pointRadius:5.5,pointHoverRadius:8,tension:.3,fill:true}]},options:o
   });
 }
 
@@ -2738,8 +2863,8 @@ function renderVendasHeatmap(){
   const datasets=DIAS_FULL.map((dia,i)=>({
     label:DIAS_LBL[i],
     data:ms.map(m=>by[m+"|"+dia]||0),
-    backgroundColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i]+"bb",
-    borderColor:["#f5a623","#ef4444","#22c55e","#a78bfa","#00cfff","#ff6b6b","#b8ff00"][i],
+    backgroundColor:["#39ff14","#ff2d95","#00e5ff","#a855f7","#ff7a00","#ff355e","#f3ff00"][i]+"bb",
+    borderColor:["#39ff14","#ff2d95","#00e5ff","#a855f7","#ff7a00","#ff355e","#f3ff00"][i],
     borderWidth:1,borderRadius:4,
   }));
 
@@ -2775,11 +2900,11 @@ function renderVendasHora(){
 
   const colors=vals.map(v=>{
     const t=v/maxV;
-    if(t>0.8)return"#f5a623";
-    if(t>0.6)return"#f97316";
-    if(t>0.4)return"#fbbf24";
-    if(t>0.2)return"#a78bfa";
-    return"#606080";
+    if(t>0.8)return"#39ff14";
+    if(t>0.6)return"#00e5ff";
+    if(t>0.4)return"#ff2d95";
+    if(t>0.2)return"#a855f7";
+    return"#ff7a00";
   });
 
   charts["vendas-hora"]=new Chart(document.getElementById("c-vendas-hora").getContext("2d"),{
@@ -2804,7 +2929,7 @@ function renderVendasHora(){
 function renderSemana(){
   dc("semana");
   const ms=getMeses();
-  const CORES=["#f5a623","#22c55e","#00cfff","#a78bfa","#ef4444"];
+  const CORES=["#ffb000","#39ff14","#00e5ff","#ff2d95","#a855f7"];
   const semanas=[1,2,3,4,5];
   const by={};
   filteredData.forEach(d=>{
@@ -2820,10 +2945,10 @@ function renderSemana(){
     return {
       label:"Semana "+s,
       data:vals,
-      backgroundColor:CORES[i]+"99",
+      backgroundColor:CORES[i]+"dd",
       borderColor:CORES[i],
-      borderWidth:2,
-      borderRadius:4,
+      borderWidth:2.6,
+      borderRadius:6,
     };
   }).filter(Boolean);
 
