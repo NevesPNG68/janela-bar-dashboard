@@ -1021,6 +1021,24 @@
     .single-filter-option,.ms-opt{min-height:48px!important}
   }
 
+
+
+  /* ── AJUSTE V11: FILTROS MOBILE RECOLHEM AO SELECIONAR ── */
+  @media(pointer:coarse){
+    .single-filter-dropdown,
+    #mes-dropdown,#grupo-dropdown,#semana-dropdown,#dia-dropdown,#produto-dropdown{
+      touch-action:pan-y!important;
+      -webkit-overflow-scrolling:touch!important;
+      overscroll-behavior:contain!important;
+    }
+    .single-filter-option,.ms-opt{
+      cursor:pointer!important;
+      user-select:none!important;
+      -webkit-user-select:none!important;
+      -webkit-tap-highlight-color:rgba(245,166,35,.24)!important;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -1706,24 +1724,36 @@ function renderSingleOptions(id){
   const lbl=document.getElementById(id+"-single-label");
   if(!sel||!dd||!lbl) return;
   const opts=[...sel.options];
-  dd.innerHTML=opts.map(o=>`<div class="single-filter-option ${o.value===sel.value?'on':''}" data-val="${String(o.value).replace(/"/g,'&quot;')}" onpointerup="event.preventDefault();selectSingleFilter('${id}', this.dataset.val)">${o.textContent}</div>`).join("");
+  dd.innerHTML=opts.map(o=>`<div class="single-filter-option ${o.value===sel.value?'on':''}" data-val="${String(o.value).replace(/"/g,'&quot;')}" onpointerup="event.preventDefault();event.stopPropagation();selectSingleFilter('${id}', this.dataset.val)">${o.textContent}</div>`).join("");
   const opt=opts.find(o=>o.value===sel.value);
   lbl.textContent=opt?opt.textContent:"Todos";
 }
+function closeAllFilterDropdowns(except){
+  ["f-ano","f-tipo","f-pgto"].forEach(k=>{
+    if(k!==except){const d=document.getElementById(k+"-single-dropdown");if(d)d.style.display="none";}
+  });
+  ["mes","semana","dia","produto","grupo"].forEach(k=>{
+    if(k!==except){const d=document.getElementById(k+"-dropdown");if(d)d.style.display="none";}
+  });
+}
+function closeFilterDropdown(key){
+  const d1=document.getElementById(key+"-dropdown");
+  if(d1)d1.style.display="none";
+  const d2=document.getElementById(key+"-single-dropdown");
+  if(d2)d2.style.display="none";
+}
 function toggleSingleDropdown(id){
-  ["f-ano","f-tipo","f-pgto"].forEach(k=>{if(k!==id){const d=document.getElementById(k+"-single-dropdown");if(d)d.style.display="none";}});
-  ["mes","semana","dia","produto","grupo"].forEach(k=>{const d=document.getElementById(k+"-dropdown");if(d)d.style.display="none";});
+  closeAllFilterDropdowns(id);
   const dd=document.getElementById(id+"-single-dropdown");
   if(dd) dd.style.display=dd.style.display==="block"?"none":"block";
 }
 function selectSingleFilter(id,val){
   const sel=document.getElementById(id);
-  const dd=document.getElementById(id+"-single-dropdown");
   if(!sel) return;
   sel.value=val;
   renderSingleOptions(id);
-  if(dd) dd.style.display="none";
-  if(id==="f-ano") anoChanged(); else scheduleApplyFilters();
+  closeAllFilterDropdowns();
+  requestAnimationFrame(()=>{ if(id==="f-ano") anoChanged(); else scheduleApplyFilters(); });
 }
 document.addEventListener("click",e=>{
   ["f-ano","f-tipo","f-pgto"].forEach(id=>{
@@ -1739,7 +1769,7 @@ function fillMs(key, vals){
   const container=document.getElementById(key+"-options");
   if(!container) return;
   container.innerHTML=vals.map(v=>`
-    <div class="ms-opt" data-key="${key}" data-val="${v}" onpointerup="event.preventDefault();toggleMsOpt(this)"
+    <div class="ms-opt" data-key="${key}" data-val="${v}" onpointerup="event.preventDefault();event.stopPropagation();toggleMsOpt(this)"
       style="padding:9px 14px;min-height:42px;cursor:pointer;font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:9px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(245,166,35,.22)">
       <span class="ms-chk" style="width:17px;height:17px;border:1.5px solid rgba(255,255,255,.92);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px"></span>
       <span>${v}</span>
@@ -1750,11 +1780,9 @@ function getMs(key){
 }
 function toggleMsDropdown(key){
   const dd=document.getElementById(key+"-dropdown");
-  // close all others first
-  ["mes","semana","dia","produto","grupo"].forEach(k=>{
-    if(k!==key){const d=document.getElementById(k+"-dropdown");if(d)d.style.display="none";}
-  });
-  dd.style.display=dd.style.display==="none"?"block":"none";
+  if(!dd) return;
+  closeAllFilterDropdowns(key);
+  dd.style.display=dd.style.display==="block"?"none":"block";
 }
 function clearMs(key){
   document.querySelectorAll(`.ms-opt[data-key="${key}"]`).forEach(el=>{
@@ -1764,8 +1792,8 @@ function clearMs(key){
     el.style.color="var(--muted)";
   });
   document.getElementById(key+"-label").textContent="Todos";
-  document.getElementById(key+"-dropdown").style.display="none";
-  scheduleApplyFilters();
+  closeAllFilterDropdowns();
+  requestAnimationFrame(scheduleApplyFilters);
 }
 function toggleMsOpt(el){
   el.classList.toggle("ms-on");
@@ -1781,7 +1809,9 @@ function toggleMsOpt(el){
   const sel=getMs(key);
   const lbl=document.getElementById(key+"-label");
   lbl.textContent=sel.length===0?"Todos":sel.length===1?sel[0]:sel.length+" selecionados";
-  scheduleApplyFilters();
+  // No mobile, recolhe imediatamente após escolher para evitar travamento visual e cliques fantasmas.
+  closeAllFilterDropdowns();
+  requestAnimationFrame(scheduleApplyFilters);
 }
 function filterProdutoOpts(){
   const q=document.getElementById("produto-search").value.toLowerCase();
@@ -1797,6 +1827,12 @@ document.addEventListener("click",e=>{
     if(dd&&btn&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display="none";
   });
 });
+document.addEventListener("pointerdown",e=>{
+  const inside=e.target.closest && e.target.closest(".filter-group,.single-filter-wrap");
+  if(inside) e.stopPropagation();
+}, true);
+window.addEventListener("scroll",()=>closeAllFilterDropdowns(),{passive:true});
+window.addEventListener("orientationchange",()=>setTimeout(()=>closeAllFilterDropdowns(),120),{passive:true});
 
 // grupo — usa o mesmo sistema genérico
 function getSelectedGrupos(){ return getMs("grupo"); }
@@ -3643,6 +3679,140 @@ function setupLocalUpload(){
     showUploadScreen();
   }
 }
+
+
+
+// ── AJUSTE V12: FILTROS MOBILE MAIS LEVES ──
+// Mantém o PC completo e torna o toque no celular mais imediato:
+// 1) fecha filtros antes de processar; 2) atualiza cartões principais primeiro;
+// 3) joga gráficos/tabelas pesados para segundo plano, em pequenos blocos.
+(function(){
+  let mobileSecondaryTimer = null;
+  let lastMobileFilterRun = 0;
+
+  function clearMobileDeferredRenders(){
+    if(mobileSecondaryTimer){ clearTimeout(mobileSecondaryTimer); mobileSecondaryTimer = null; }
+    if(mobileHeavyTimer){ clearTimeout(mobileHeavyTimer); mobileHeavyTimer = null; }
+  }
+
+  function scheduleMobileDeferredRenders(secondaryJobs, heavyJobs, token){
+    clearMobileDeferredRenders();
+    mobileSecondaryTimer = setTimeout(()=>{
+      if(token !== renderToken) return;
+      runRenderQueue([...secondaryJobs], token, ()=>{
+        if(token !== renderToken) return;
+        resizeDashboardCharts();
+        // Tabelas/blocos grandes entram depois, para não prender o toque do filtro.
+        mobileHeavyTimer = setTimeout(()=>{
+          if(token !== renderToken) return;
+          runRenderQueue([...heavyJobs], token, ()=>{
+            if(token === renderToken) requestAnimationFrame(applyNeonCards);
+          }, 140);
+        }, 1100);
+      }, 115);
+    }, 380);
+  }
+
+  scheduleApplyFilters = function(done){
+    if(filterTimer) clearTimeout(filterTimer);
+    if(isMobileView()) closeAllFilterDropdowns();
+
+    const mobile = isMobileView();
+    // No mobile, o objetivo é responder ao toque rápido; o processamento pesado fica em fila.
+    const delay = mobile ? 90 : 45;
+
+    filterTimer = setTimeout(()=>{
+      filterTimer = null;
+      lastMobileFilterRun = Date.now();
+      setFilterBusy(true);
+      // Dá tempo para o dropdown fechar visualmente antes do cálculo começar.
+      requestAnimationFrame(()=>{
+        setTimeout(()=>{
+          applyFilters(()=>{
+            setFilterBusy(false);
+            if(typeof done === "function") done();
+          });
+        }, mobile ? 20 : 0);
+      });
+    }, delay);
+  };
+
+  applyFilters = function(done){
+    const getVal=id=>document.getElementById(id)?.value||"";
+    const ano=getVal("f-ano");
+    const mesSel=getMs("mes"), semanaSel=getMs("semana"), grupoSel=getMs("grupo"), diaSel=getMs("dia"), produtoSel=getMs("produto");
+    const mesSet=new Set(mesSel), semanaSet=new Set(semanaSel), grupoSet=new Set(grupoSel), diaSet=new Set(diaSel), produtoSet=new Set(produtoSel);
+    const tipo=getVal("f-tipo"), pgto=getVal("f-pgto");
+
+    filteredData=allData.filter(d=>{
+      if(ano){
+        const p=String(d.mes||"").split("/");
+        const yy=parseInt(p[1]||0);
+        const y=p[1]?String(yy+(yy<100?2000:0)):"";
+        if(y!==ano) return false;
+      }
+      if(mesSel.length && !mesSet.has(d.mes)) return false;
+      if(semanaSel.length && !semanaSet.has(String(Math.round(d.semana)))) return false;
+      if(grupoSel.length && !grupoSet.has(d.grupo)) return false;
+      if(tipo && d.tipo!==tipo) return false;
+      if(pgto && d.pgto!==pgto) return false;
+      if(diaSel.length && !diaSet.has(d.dia)) return false;
+      if(produtoSel.length && !produtoSet.has(d.produto)) return false;
+      return true;
+    });
+
+    const token=++renderToken;
+    clearMobileDeferredRenders();
+
+    const primaryJobs=[
+      renderKPIs,
+      renderFinanceiro
+    ];
+
+    const secondaryJobs=[
+      renderProjecao,
+      renderMensal,
+      renderDrinkVendasTicket,
+      renderCanal,
+      renderGrupo,
+      renderPgto,
+      renderDia,
+      renderHora,
+      renderTkt,
+      renderVendas,
+      renderSemana
+    ];
+
+    const heavyJobs=[
+      renderDrinkAnalysis,
+      renderCustos,
+      renderKpiLinha,
+      renderTable
+    ];
+
+    if(isMobileView()){
+      runRenderQueue([...primaryJobs], token, ()=>{
+        if(token!==renderToken) return;
+        requestAnimationFrame(applyNeonCards);
+        if(typeof done==="function") done();
+        scheduleMobileDeferredRenders(secondaryJobs, heavyJobs, token);
+      }, 38);
+    }else{
+      runRenderQueue([...primaryJobs,...secondaryJobs,...heavyJobs], token, ()=>{
+        if(token!==renderToken) return;
+        requestAnimationFrame(applyNeonCards);
+        resizeDashboardCharts();
+        if(typeof done==="function") done();
+      }, 0);
+    }
+  };
+
+  // Em celular, ao tocar fora, fecha tudo sem disparar novo processamento.
+  window.addEventListener("touchstart", e=>{
+    const inside = e.target.closest && e.target.closest(".filter-group,.single-filter-wrap");
+    if(!inside) closeAllFilterDropdowns();
+  }, {passive:true});
+})();
 
 window.addEventListener("DOMContentLoaded", setupLocalUpload);
 
