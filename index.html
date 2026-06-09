@@ -1040,6 +1040,27 @@
   }
 
 </style>
+
+
+<style id="mobile-filter-performance-v13">
+@media (pointer:coarse), (max-width:1024px){
+  .chart-wrap canvas,.drink-combo-wrap canvas{filter:none!important}
+  .kpi-card,.fin-zone,.fin-kpi,.chart-card,.table-card,.drink-summary-card{
+    transition:none!important;
+  }
+  .kpi-card:hover,.fin-kpi:hover,.chart-card:hover,.table-card:hover,
+  .fin-zone:hover,.drink-summary-card:hover,
+  .kpi-card:active,.fin-kpi:active,.chart-card:active,.table-card:active,
+  .fin-zone:active,.drink-summary-card:active{
+    transform:none!important;
+  }
+  body.is-updating::before{
+    content:"Aplicando filtro..."!important;
+    opacity:.78!important;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -3816,6 +3837,192 @@ function setupLocalUpload(){
     if(!inside) closeAllFilterDropdowns();
   }, {passive:true});
 })();
+
+
+
+// ── AJUSTE V13: MOBILE/IPAD SEM RECONSTRUIR A TELA INTEIRA A CADA FILTRO ──
+// Estratégia: no celular/iPad o filtro atualiza imediatamente os KPIs e resultados financeiros.
+// Gráficos e tabelas pesadas são atualizados só quando a seção estiver próxima/visível,
+// evitando o efeito de "refazer todas as telas" e travamentos no Safari mobile.
+(function(){
+  let mobileVisibleTimer = null;
+  const mobileJobToken = Object.create(null);
+
+  function isTouchDashboard(){
+    return isMobileView && isMobileView();
+  }
+
+  function clearDeferredMobileWork(){
+    if(filterTimer){ clearTimeout(filterTimer); filterTimer = null; }
+    if(mobileHeavyTimer){ clearTimeout(mobileHeavyTimer); mobileHeavyTimer = null; }
+    if(mobileVisibleTimer){ clearTimeout(mobileVisibleTimer); mobileVisibleTimer = null; }
+  }
+
+  function getFilterState(){
+    const getVal=id=>document.getElementById(id)?.value||"";
+    const ano=getVal("f-ano");
+    const mesSel=getMs("mes"), semanaSel=getMs("semana"), grupoSel=getMs("grupo"), diaSel=getMs("dia"), produtoSel=getMs("produto");
+    const mesSet=new Set(mesSel), semanaSet=new Set(semanaSel), grupoSet=new Set(grupoSel), diaSet=new Set(diaSel), produtoSet=new Set(produtoSel);
+    const tipo=getVal("f-tipo"), pgto=getVal("f-pgto");
+    return {ano,mesSel,semanaSel,grupoSel,diaSel,produtoSel,mesSet,semanaSet,grupoSet,diaSet,produtoSet,tipo,pgto};
+  }
+
+  function rebuildFilteredData(){
+    const f=getFilterState();
+    filteredData=allData.filter(d=>{
+      if(f.ano){
+        const p=String(d.mes||"").split("/");
+        const yy=parseInt(p[1]||0);
+        const y=p[1]?String(yy+(yy<100?2000:0)):"";
+        if(y!==f.ano) return false;
+      }
+      if(f.mesSel.length && !f.mesSet.has(d.mes)) return false;
+      if(f.semanaSel.length && !f.semanaSet.has(String(Math.round(d.semana)))) return false;
+      if(f.grupoSel.length && !f.grupoSet.has(d.grupo)) return false;
+      if(f.tipo && d.tipo!==f.tipo) return false;
+      if(f.pgto && d.pgto!==f.pgto) return false;
+      if(f.diaSel.length && !f.diaSet.has(d.dia)) return false;
+      if(f.produtoSel.length && !f.produtoSet.has(d.produto)) return false;
+      return true;
+    });
+  }
+
+  function mobileTargetElement(id){
+    const el=document.getElementById(id);
+    if(!el) return null;
+    const card=el.closest && el.closest('.chart-card,.table-card,.fin-zone,.kpi-row,[id="proj-section"]');
+    return card || el;
+  }
+
+  function isNearViewport(id, margin){
+    const el=mobileTargetElement(id);
+    if(!el) return false;
+    const r=el.getBoundingClientRect();
+    const h=window.innerHeight || document.documentElement.clientHeight || 800;
+    const m=typeof margin === 'number' ? margin : 180;
+    return r.bottom >= -m && r.top <= h + m;
+  }
+
+  const mobileLazyJobs = [
+    {key:'drink-analysis',       target:'drink-analysis',       fn:renderDrinkAnalysis},
+    {key:'drink-vendas-tkt',     target:'c-drink-vendas-tkt',   fn:renderDrinkVendasTicket},
+    {key:'custos',               target:'quadro-custos',        fn:renderCustos},
+    {key:'kpi-linha',            target:'quadro-kpi',           fn:renderKpiLinha},
+    {key:'projecao',             target:'proj-section',         fn:renderProjecao},
+    {key:'mensal',               target:'c-mensal',             fn:renderMensal},
+    {key:'canal',                target:'c-canal',              fn:renderCanal},
+    {key:'grupo-chart',          target:'c-grupo',              fn:renderGrupo},
+    {key:'pgto',                 target:'c-pgto',               fn:renderPgto},
+    {key:'dia',                  target:'c-dia',                fn:renderDia},
+    {key:'hora',                 target:'c-hora',               fn:renderHora},
+    {key:'tkt',                  target:'c-tkt',                fn:renderTkt},
+    {key:'vendas',               target:'c-vendas-heatmap',     fn:renderVendas},
+    {key:'semana',               target:'c-semana',             fn:renderSemana},
+    {key:'ranking-produtos',     target:'t-body',               fn:renderTable}
+  ];
+
+  function markAllMobileJobsStale(){
+    mobileLazyJobs.forEach(j=>{ mobileJobToken[j.key]=0; });
+  }
+
+  function renderVisibleMobileJobs(token, force){
+    if(!isTouchDashboard() || token!==renderToken) return;
+    const margin = force ? 999999 : 220;
+    const jobs = mobileLazyJobs
+      .filter(j => mobileJobToken[j.key] !== token)
+      .filter(j => force || isNearViewport(j.target, margin))
+      .map(j => function mobileLazyJob(){
+        if(token!==renderToken) return;
+        j.fn();
+        mobileJobToken[j.key]=token;
+      });
+    if(!jobs.length) return;
+    runRenderQueue(jobs, token, ()=>{
+      if(token===renderToken){
+        requestAnimationFrame(applyNeonCards);
+        resizeDashboardCharts();
+      }
+    }, 95);
+  }
+
+  function scheduleVisibleMobileRender(token, delay, force){
+    if(mobileVisibleTimer) clearTimeout(mobileVisibleTimer);
+    mobileVisibleTimer=setTimeout(()=>{
+      mobileVisibleTimer=null;
+      if(token!==renderToken) return;
+      renderVisibleMobileJobs(token, !!force);
+    }, typeof delay==='number' ? delay : 180);
+  }
+
+  scheduleApplyFilters = function(done){
+    if(filterTimer) clearTimeout(filterTimer);
+    const mobile=isTouchDashboard();
+    if(mobile) closeAllFilterDropdowns();
+    filterTimer=setTimeout(()=>{
+      filterTimer=null;
+      if(mobile) setFilterBusy(true);
+      requestAnimationFrame(()=>{
+        applyFilters(()=>{
+          if(mobile) setFilterBusy(false);
+          if(typeof done==='function') done();
+        });
+      });
+    }, mobile ? 55 : 45);
+  };
+
+  applyFilters = function(done){
+    rebuildFilteredData();
+    const token=++renderToken;
+    clearDeferredMobileWork();
+
+    if(isTouchDashboard()){
+      markAllMobileJobsStale();
+      // Primeira resposta visual: só os blocos leves do topo.
+      runRenderQueue([renderKPIs, renderFinanceiro], token, ()=>{
+        if(token!==renderToken) return;
+        requestAnimationFrame(applyNeonCards);
+        if(typeof done==='function') done();
+        // Depois, atualiza somente a seção que estiver aparecendo na tela.
+        scheduleVisibleMobileRender(token, 220, false);
+      }, 28);
+    }else{
+      const allJobs=[
+        renderKPIs,renderFinanceiro,renderDrinkAnalysis,renderDrinkVendasTicket,
+        renderCustos,renderKpiLinha,renderProjecao,renderMensal,renderCanal,
+        renderGrupo,renderPgto,renderDia,renderHora,renderTkt,renderVendas,
+        renderSemana,renderTable
+      ];
+      runRenderQueue(allJobs, token, ()=>{
+        if(token!==renderToken) return;
+        requestAnimationFrame(applyNeonCards);
+        resizeDashboardCharts();
+        if(typeof done==='function') done();
+      }, 0);
+    }
+  };
+
+  function onMobileScrollOrResize(){
+    if(!isTouchDashboard()) return;
+    const token=renderToken;
+    if(!token) return;
+    scheduleVisibleMobileRender(token, 230, false);
+  }
+
+  window.addEventListener('scroll', onMobileScrollOrResize, {passive:true});
+  window.addEventListener('resize', onMobileScrollOrResize, {passive:true});
+  window.addEventListener('orientationchange', ()=>setTimeout(onMobileScrollOrResize, 360), {passive:true});
+
+  // Botão opcional para quem quiser atualizar todos os gráficos/tabelas de uma vez no mobile.
+  window.atualizarTudoMobile = function(){
+    if(!isTouchDashboard()) return applyFilters();
+    const token=renderToken;
+    if(!token) return;
+    setFilterBusy(true);
+    renderVisibleMobileJobs(token, true);
+    setTimeout(()=>setFilterBusy(false), 700);
+  };
+})();
+
 
 window.addEventListener("DOMContentLoaded", setupLocalUpload);
 
