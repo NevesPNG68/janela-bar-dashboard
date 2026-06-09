@@ -291,7 +291,7 @@
   /* ── DEMONSTRATIVO DE DRINKS ── */
   .drink-demo-card{margin-bottom:1.5rem}
   .drink-table-wrap{overflow:auto;max-height:520px;padding:.2rem 0 .45rem}
-  .drink-table{width:100%;min-width:1860px;border-collapse:separate;border-spacing:0;font-size:.76rem}
+  .drink-table{width:100%;min-width:1940px;border-collapse:separate;border-spacing:0;font-size:.76rem}
   .drink-table th{position:sticky;top:0;z-index:4;padding:.62rem .58rem;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.08em;font-size:.58rem;font-weight:900;text-align:center;white-space:nowrap;color:#050509}
   .drink-table th small{display:block;margin-top:.18rem;font-size:.49rem;letter-spacing:.08em;opacity:.78;font-weight:900}
   .drink-table .head2 th{top:35px;z-index:4;min-width:86px}
@@ -324,7 +324,7 @@
   .drink-summary-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:900;margin-bottom:.35rem}
   .drink-summary-value{font-family:var(--font-head);font-size:1.45rem;letter-spacing:.04em;color:var(--dcolor);line-height:1}
   .drink-summary-sub{font-size:.68rem;color:var(--muted);margin-top:.28rem;font-weight:700}
-  @media(max-width:700px){.drink-table{min-width:1450px;font-size:.68rem}.drink-table th,.drink-table td{padding:.5rem .48rem}.drink-table .head2 th{top:32px}}
+  @media(max-width:700px){.drink-table{min-width:1530px;font-size:.68rem}.drink-table th,.drink-table td{padding:.5rem .48rem}.drink-table .head2 th{top:32px}}
 
 
   /* ── GRÁFICO VENDAS × TICKET MÉDIO — ESTILO DASHBOARD EXCEL ── */
@@ -1980,6 +1980,8 @@ function renderDrinkAnalysis(){
     const totalQ=qs.reduce((a,b)=>a+b,0);
     return r[arrKey].map((v,i)=>cell(v,qs[i])).join("")+cell(r[totalKey],totalQ,"total-col "+cls);
   };
+  const totalRowQty=(r)=>["DRINKS","DRINKS ESPECIAIS","DRINK SEM ÁLCOOL","DOUBLE DRINKS"]
+    .reduce((tot,g)=>tot+[1,2,3,4,5].reduce((s,w)=>s+qtyFor(r.mes,g,w),0),0);
   const body=rows.map(r=>`<tr>
     <td class="month-cell">${r.mes}</td>
     ${vals(r,"drinks","drinksTotal","total-drinks","DRINKS")}
@@ -1987,6 +1989,7 @@ function renderDrinkAnalysis(){
     ${vals(r,"semAlcool","semAlcoolTotal","total-semalcool","DRINK SEM ÁLCOOL")}
     ${vals(r,"double","doubleTotal","total-double","DOUBLE DRINKS")}
     <td class="result-cell"><div class="drink-money">${fmtDrinkMoney(r.faturamento)}</div></td>
+    <td class="result-cell result-qty"><div class="drink-money">${fmtQty(totalRowQty(r))}</div><div class="drink-qty">un</div></td>
     <td class="result-cell"><div class="drink-money">${fmtDrinkMoney(r.drinkTotal)}</div></td>
     <td class="result-cell"><span class="drink-share">${fmtDrinkPct(r.participacao)}</span></td>
   </tr>`).join("");
@@ -1998,11 +2001,11 @@ function renderDrinkAnalysis(){
         <th class="grp-especiais" colspan="6">DRINKS ESPECIAIS</th>
         <th class="grp-semalcool" colspan="6">DRINK SEM ÁLCOOL</th>
         <th class="grp-double" colspan="6">DOUBLE DRINKS</th>
-        <th class="grp-resultado" colspan="3">RESULTADO</th>
+        <th class="grp-resultado" colspan="4">RESULTADO</th>
       </tr>
       <tr class="head2">
         ${weekHead}${weekHead}${weekHead}${weekHead}
-        <th class="grp-resultado">Faturamento</th><th class="grp-resultado">Drink</th><th class="grp-resultado">Part.</th>
+        <th class="grp-resultado">Faturamento</th><th class="grp-resultado">Total Qtd<small>un</small></th><th class="grp-resultado">Drink</th><th class="grp-resultado">Part.</th>
       </tr>
     </thead>
     <tbody>${body}</tbody>
