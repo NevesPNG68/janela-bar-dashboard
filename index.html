@@ -1039,6 +1039,34 @@
     }
   }
 
+
+  /* ── QUADRO DEMONSTRATIVO SEMANAL ── */
+  .weekly-demo-card{margin-bottom:1.5rem;overflow:hidden}
+  .weekly-table-wrap{overflow:auto;max-height:560px;padding:.2rem 0 .45rem;-webkit-overflow-scrolling:touch}
+  .weekly-demo-table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0;font-size:.82rem;font-variant-numeric:tabular-nums}
+  .weekly-demo-table th{position:sticky;top:0;z-index:4;padding:.66rem .7rem;border-bottom:1px solid var(--border);border-right:1px solid rgba(255,255,255,.10);text-align:right;white-space:nowrap;text-transform:uppercase;letter-spacing:.08em;font-size:.64rem;font-weight:950;color:#ffffff;background:#f4f4f5}
+  .weekly-demo-table th:first-child,.weekly-demo-table td:first-child{position:sticky;left:0;z-index:5;text-align:left;border-right:1px solid var(--border)}
+  .weekly-demo-table th:first-child{background:#f4f4f5;color:#050509}
+  .weekly-demo-table th.week-head{background:#f4f4f5;color:#050509}
+  .weekly-demo-table th.total-head{background:#02a9e6;color:#050509}
+  .weekly-demo-table td{padding:.58rem .7rem;border-bottom:1px solid #1f1f2e;border-right:1px solid rgba(255,255,255,.05);text-align:right;white-space:nowrap;background:#14141d;color:#ffffff;font-weight:850}
+  .weekly-demo-table td:first-child{background:#18181f;color:#ffffff;font-weight:950;text-transform:lowercase}
+  .weekly-demo-table tr:hover td:not(.week-max):not(.week-min):not(.total-cell){background:#242438!important;color:#ffffff!important}
+  .weekly-demo-table tr:hover td:first-child{background:#242438!important}
+  .weekly-demo-table tr:hover td.week-max{background:#54ff8a!important;color:#04150b!important}
+  .weekly-demo-table tr:hover td.week-min{background:#ff101f!important;color:#ffffff!important}
+  .weekly-demo-table tr:hover td.total-cell{background:#02a9e6!important;color:#050509!important}
+  .weekly-demo-table td.week-max{background:#54ff8a!important;color:#04150b!important;font-weight:950;text-shadow:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.20),0 0 14px rgba(84,255,138,.18)}
+  .weekly-demo-table td.week-min{background:#ff101f!important;color:#ffffff!important;font-weight:950;text-shadow:0 1px 8px rgba(0,0,0,.32);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 14px rgba(255,16,31,.18)}
+  .weekly-demo-table td.week-zero{color:#8c8ca4!important;background:#111118!important}
+  .weekly-demo-table td.total-cell{background:#02a9e6!important;color:#050509!important;font-weight:950;text-shadow:none}
+  .weekly-legend{display:flex;gap:.65rem;flex-wrap:wrap;align-items:center;margin:.2rem 0 .85rem;color:#ffffff;font-size:.72rem;font-weight:900;letter-spacing:.04em}
+  .weekly-legend .lg{display:inline-flex;align-items:center;gap:.3rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:.23rem .55rem}
+  .weekly-legend .dot{width:10px;height:10px;border-radius:3px;box-shadow:0 0 10px currentColor}
+  .weekly-legend .max{color:#54ff8a}.weekly-legend .min{color:#ff101f}.weekly-legend .tot{color:#02a9e6}
+  .weekly-empty{padding:1rem;color:var(--muted);font-size:.82rem;text-align:center}
+  @media(max-width:700px){.weekly-demo-table{min-width:680px;font-size:.74rem}.weekly-demo-table th,.weekly-demo-table td{padding:.54rem .55rem}.weekly-legend{font-size:.66rem}}
+
 </style>
 
 
@@ -1170,6 +1198,8 @@
   <div class="main">
     <div class="kpi-row" id="kpi-row"></div>
 
+
+
     <!-- RESULTADOS FINANCEIROS — lidos da aba MATRIZ ANALITICO -->
     <div class="section-title">Resultados Financeiros <span class="tag">MATRIZ ANAL&Iacute;TICO</span></div>
     <div class="fin-grid">
@@ -1185,6 +1215,15 @@
         <div class="fin-kpi-row" style="grid-template-columns:1fr 1fr 1fr 1fr" id="fin-despesas"></div>
       </div>
     </div>
+
+
+    <!-- QUADRO DEMONSTRATIVO SEMANAL — lido da aba VendasOperador -->
+    <div class="section-title">Quadro Demonstrativo Semanal <span class="tag">VENDASOPERADOR</span></div>
+    <div class="chart-card weekly-demo-card">
+      <h3>Faturamento por semana do m&ecirc;s — maior e menor valor por coluna</h3>
+      <div id="weekly-demonstrativo" class="weekly-table-wrap"></div>
+    </div>
+
 
     <!-- DEMONSTRATIVO DE DRINKS — lido da aba ANÁLISE DRINK -->
     <div class="section-title">Demonstrativo de Drinks <span class="tag">AN&Aacute;LISE DRINK</span></div>
@@ -1687,6 +1726,7 @@ function applyFilters(done){
   const coreJobs=[
     renderKPIs,
     renderFinanceiro,
+    renderQuadroSemanal,
     renderProjecao,
     renderMensal,
     renderCanal,
@@ -2818,7 +2858,7 @@ function renderDrinkVendasTicket(){
   });
 }
 
-function renderCharts(){renderMensal();renderCanal();renderGrupo();renderPgto();renderDia();renderHora();renderTkt();renderVendas();renderSemana();renderCustos();renderKpiLinha();renderDrinkVendasTicket();}
+function renderCharts(){renderMensal();renderCanal();renderGrupo();renderPgto();renderDia();renderHora();renderTkt();renderVendas();renderSemana();renderQuadroSemanal();renderCustos();renderKpiLinha();renderDrinkVendasTicket();}
 
 function getMeses(){
   return sortMes([...new Set(filteredData.map(d=>d.mes))].filter(Boolean));
@@ -3019,6 +3059,64 @@ function renderVendasHora(){
     },
     options:o
   });
+}
+
+
+// QUADRO DEMONSTRATIVO SEMANAL
+function renderQuadroSemanal(){
+  const el=document.getElementById("weekly-demonstrativo");
+  if(!el) return;
+  const semanas=[1,2,3,4,5];
+  const by={};
+  filteredData.forEach(d=>{
+    const mes=String(d.mes||"").trim();
+    const sem=Math.round(Number(d.semana)||0);
+    if(!mes || !semanas.includes(sem)) return;
+    if(!by[mes]) by[mes]={weeks:{1:0,2:0,3:0,4:0,5:0},total:0};
+    const valor=Number(d.liquido)||0;
+    by[mes].weeks[sem]+=valor;
+    by[mes].total+=valor;
+  });
+  const meses=sortMes(Object.keys(by));
+  if(!meses.length){
+    el.innerHTML=`<div class="weekly-empty">Sem dados para montar o quadro demonstrativo no período filtrado.</div>`;
+    return;
+  }
+
+  const fmt=v=>Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const extremos={};
+  semanas.forEach(s=>{
+    const vals=meses.map(m=>by[m].weeks[s]||0).filter(v=>v>0);
+    extremos[s]={max:vals.length?Math.max(...vals):null,min:vals.length?Math.min(...vals):null};
+  });
+  const cls=(s,v)=>{
+    if(!(v>0)) return "week-zero";
+    const e=extremos[s]||{};
+    if(e.max!==null && Math.abs(v-e.max)<0.005) return "week-max";
+    if(e.min!==null && Math.abs(v-e.min)<0.005) return "week-min";
+    return "";
+  };
+  const thead=`<thead><tr>
+    <th>Mês</th>
+    ${semanas.map(s=>`<th class="week-head">${s}ª SEM</th>`).join("")}
+    <th class="total-head">TOTAL</th>
+  </tr></thead>`;
+  const body=meses.map(m=>{
+    const r=by[m];
+    return `<tr>
+      <td>${m}</td>
+      ${semanas.map(s=>`<td class="${cls(s,r.weeks[s])}">${fmt(r.weeks[s])}</td>`).join("")}
+      <td class="total-cell">${fmt(r.total)}</td>
+    </tr>`;
+  }).join("");
+  el.innerHTML=`
+    <div class="weekly-legend">
+      <span class="lg max"><span class="dot" style="background:#54ff8a"></span>Maior da coluna</span>
+      <span class="lg min"><span class="dot" style="background:#ff101f"></span>Menor da coluna</span>
+      <span class="lg tot"><span class="dot" style="background:#02a9e6"></span>Total do mês</span>
+      <span class="lg">Semanas zeradas ficam fora do menor valor</span>
+    </div>
+    <table class="weekly-demo-table">${thead}<tbody>${body}</tbody></table>`;
 }
 
 // SEMANA
@@ -4244,8 +4342,8 @@ function setupLocalUpload(){
     if(mobileHeavyTimer){ clearTimeout(mobileHeavyTimer); mobileHeavyTimer=null; }
 
     if(touchModeV14()){
-      // Sem reconstrução da tela inteira no mobile: apenas topo + finanças leves.
-      runRenderQueue([renderKPIs,renderFinanceiro], token, ()=>{
+      // No mobile, mantém os blocos principais leves, mas inclui o quadro demonstrativo.
+      runRenderQueue([renderKPIs,renderFinanceiro,renderQuadroSemanal], token, ()=>{
         if(token!==renderToken) return;
         requestAnimationFrame(applyNeonCards);
         if(typeof done==='function') done();
@@ -4254,7 +4352,7 @@ function setupLocalUpload(){
       }, 12);
     }else{
       const allJobs=[
-        renderKPIs,renderFinanceiro,renderDrinkAnalysis,renderDrinkVendasTicket,
+        renderKPIs,renderFinanceiro,renderQuadroSemanal,renderDrinkAnalysis,renderDrinkVendasTicket,
         renderCustos,renderKpiLinha,renderProjecao,renderMensal,renderCanal,
         renderGrupo,renderPgto,renderDia,renderHora,renderTkt,renderVendas,
         renderSemana,renderTable
