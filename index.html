@@ -1981,11 +1981,78 @@ function parseDrinkAnalysis(wb,norm){
 }
 function fmtDrinkMoney(v){return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtDrinkPct(v){return (Number(v||0)*100).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";}
+function getDrinkAnoFromMes(mes){
+  const p=String(mes||"").trim().split("/");
+  const yy=parseInt(p[1]||0,10);
+  return yy ? String(yy+(yy<100?2000:0)) : "";
+}
+function monthSortValueDrink(mes){
+  const s=String(mes||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const p=s.split("/");
+  const m=(p[0]||"").slice(0,3);
+  const yy=parseInt(p[1]||0,10);
+  const y=yy ? yy+(yy<100?2000:0) : 0;
+  const idx=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"].indexOf(m);
+  return y*12 + (idx>=0?idx:0);
+}
+function buildDrinkRowsFromVendasOperador(){
+  const rowsByMes=new Map();
+  const norm=s=>String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const mkRow=mes=>({
+    mes, ano:getDrinkAnoFromMes(mes),
+    drinks:[0,0,0,0,0], drinksTotal:0,
+    especiais:[0,0,0,0,0], especiaisTotal:0,
+    semAlcool:[0,0,0,0,0], semAlcoolTotal:0,
+    double:[0,0,0,0,0], doubleTotal:0,
+    faturamento:0, drinkTotal:0, participacao:0
+  });
+  const catFromGrupo=grupo=>{
+    const g=norm(grupo).replace(/\s+/g," ");
+    if(!g) return null;
+    if(g.includes("double")) return {arr:"double", total:"doubleTotal"};
+    if(g.includes("especial")) return {arr:"especiais", total:"especiaisTotal"};
+    if(g.includes("sem alcool") || g.includes("semalcool")) return {arr:"semAlcool", total:"semAlcoolTotal"};
+    if(g.includes("drink")) return {arr:"drinks", total:"drinksTotal"};
+    return null;
+  };
+  (allData||[]).forEach(d=>{
+    const mes=String(d.mes||"").trim();
+    if(!mes) return;
+    let row=rowsByMes.get(norm(mes));
+    if(!row){ row=mkRow(mes); rowsByMes.set(norm(mes),row); }
+    const valor = Number(d.liquido)||Number(d.total)||0;
+    row.faturamento += valor;
+    const cat=catFromGrupo(d.grupo);
+    if(cat){
+      const semana=Math.round(Number(d.semana||0));
+      if(semana>=1 && semana<=5) row[cat.arr][semana-1] += valor;
+      row[cat.total] += valor;
+      row.drinkTotal += valor;
+    }
+  });
+  const rows=[...rowsByMes.values()].map(r=>{
+    r.participacao = r.faturamento>0 ? r.drinkTotal/r.faturamento : 0;
+    return r;
+  });
+  rows.sort((a,b)=>monthSortValueDrink(a.mes)-monthSortValueDrink(b.mes));
+  return rows;
+}
+function getDrinkAllRows(){
+  // A aba ANÁLISE DRINK continua sendo a fonte principal.
+  // Se a leitura dela vier incompleta no navegador/Dropbox, completamos os meses faltantes pela VendasOperador.
+  const norm=s=>String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const fromAnalysis=[...(drinkAnalysisData||[])];
+  const map=new Map(fromAnalysis.map(r=>[norm(r.mes),r]));
+  buildDrinkRowsFromVendasOperador().forEach(r=>{
+    if(!map.has(norm(r.mes))) map.set(norm(r.mes),r);
+  });
+  return [...map.values()].sort((a,b)=>monthSortValueDrink(a.mes)-monthSortValueDrink(b.mes));
+}
 function getDrinkFilteredRows(){
   const ano=document.getElementById("f-ano")?.value||"";
   const mesesSel=getMs("mes");
-  let rows=[...(drinkAnalysisData||[])];
-  if(ano) rows=rows.filter(r=>r.ano===ano);
+  let rows=getDrinkAllRows();
+  if(ano) rows=rows.filter(r=>String(r.ano||getDrinkAnoFromMes(r.mes))===ano);
   if(mesesSel.length>0){
     const n=s=>String(s||"").trim().toLowerCase();
     rows=rows.filter(r=>mesesSel.some(m=>n(m)===n(r.mes)));
@@ -2071,6 +2138,11 @@ function renderDrinkAnalysis(){
     </thead>
     <tbody>${body}</tbody>
   </table>`;
+  requestAnimationFrame(()=>{
+    el.scrollTop = 0;
+    const wrap = el.closest && el.closest(".drink-table-wrap");
+    if(wrap) wrap.scrollTop = 0;
+  });
 }
 // METAS DO MÊS — dados vindos da aba "dados graf KPI"
 function parseDashboardGoals(wb,norm){
