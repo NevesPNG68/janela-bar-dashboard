@@ -1078,9 +1078,10 @@
   .day-analysis-control input:focus{outline:none;border-color:#00e5ff}
   .day-date-input-wrap{display:flex;align-items:center;gap:.45rem}
   .day-date-input-wrap input{min-width:150px}
-  .day-calendar-btn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid #b6ff00;background:#111820;color:#b6ff00;font-size:1.05rem;cursor:pointer;box-shadow:0 0 10px rgba(182,255,0,.12);transition:all .18s}
-  .day-calendar-btn:hover{background:#b6ff00;color:#071007;box-shadow:0 0 14px rgba(182,255,0,.3)}
-  .day-analysis-control input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.65);opacity:.9;cursor:pointer}
+  .day-calendar-btn{width:42px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:2px solid #b6ff00;background:#20242d;color:#fff;cursor:pointer;box-shadow:0 0 12px rgba(182,255,0,.28);transition:all .18s}
+  .day-calendar-btn:hover{background:#b6ff00;color:#071007;box-shadow:0 0 16px rgba(182,255,0,.45)}
+  .day-calendar-icon{font-size:1.25rem;line-height:1;filter:brightness(1.45) contrast(1.15)}
+  .day-analysis-control input[type="date"]::-webkit-calendar-picker-indicator{opacity:0;width:0;padding:0;margin:0;cursor:pointer}
 
   .day-analysis-status{font-size:.72rem;color:var(--muted);margin-left:auto;padding-bottom:.55rem}
   .day-analysis-primary{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:.8rem;margin-bottom:.85rem}
@@ -1321,18 +1322,12 @@
           <label>Data principal</label>
           <div class="day-date-input-wrap">
             <input type="date" id="day-analysis-date" onchange="renderAnaliseDia()" onclick="openDayDatePicker('day-analysis-date')">
-            <button class="day-calendar-btn" type="button" onclick="openDayDatePicker('day-analysis-date')" aria-label="Abrir calendário da data principal" title="Abrir calendário">&#128197;</button>
+            <button class="day-calendar-btn" type="button" onclick="openDayDatePicker('day-analysis-date')" aria-label="Abrir calendário" title="Abrir calendário">
+              <span class="day-calendar-icon" aria-hidden="true">📅</span>
+            </button>
           </div>
+          <div class="day-analysis-sub">A comparação com a mesma data dos anos anteriores é automática.</div>
         </div>
-        <div class="day-analysis-control">
-          <label>Adicionar outra data à comparação (opcional)</label>
-          <div class="day-date-input-wrap">
-            <input type="date" id="day-analysis-compare" onchange="renderAnaliseDia()" onclick="openDayDatePicker('day-analysis-compare')">
-            <button class="day-calendar-btn" type="button" onclick="openDayDatePicker('day-analysis-compare')" aria-label="Abrir calendário da data de comparação" title="Abrir calendário">&#128197;</button>
-          </div>
-          <div class="day-analysis-sub">A mesma data de anos anteriores já entra automaticamente.</div>
-        </div>
-        <button class="reload-btn" style="margin-left:0;margin-bottom:.05rem" type="button" onclick="document.getElementById('day-analysis-compare').value='';renderAnaliseDia()">Limpar compara&ccedil;&atilde;o</button>
         <div class="day-analysis-status" id="day-analysis-status">Aguardando dados...</div>
       </div>
       <div class="day-analysis-primary" id="day-analysis-primary"></div>
@@ -1890,22 +1885,19 @@ function openDayDatePicker(id){
 
 function initAnaliseDia(){
   const sel=document.getElementById("day-analysis-date");
-  const cmp=document.getElementById("day-analysis-compare");
-  if(!sel || !cmp) return;
+  if(!sel) return;
   const dates=[...new Set(allData.map(d=>d.data).filter(Boolean))].sort();
   if(!dates.length){
     document.getElementById("day-analysis-status").textContent="Nenhuma data válida encontrada na coluna B da VendasOperador.";
     return;
   }
   sel.min=dates[0]; sel.max=dates[dates.length-1];
-  cmp.min=dates[0]; cmp.max=dates[dates.length-1];
   if(!sel.value || !dates.includes(sel.value)) sel.value=dates[dates.length-1];
   renderAnaliseDia();
 }
 
 async function renderAnaliseDia(){
   const sel=document.getElementById("day-analysis-date");
-  const cmp=document.getElementById("day-analysis-compare");
   const status=document.getElementById("day-analysis-status");
   const cards=document.getElementById("day-analysis-primary");
   const table=document.getElementById("day-analysis-table");
@@ -1914,7 +1906,7 @@ async function renderAnaliseDia(){
   if(!selected){ status.textContent="Escolha uma data."; return; }
   const token=++dayAnalysisRequestToken;
   status.textContent="Carregando contexto histórico...";
-  const dates=comparisonDatesDayAnalysis(selected,cmp?.value||"");
+  const dates=comparisonDatesDayAnalysis(selected,"");
   const baseItems=dates.map(dateKey=>({
     dateKey,
     sales:daySalesForDate(dateKey),
