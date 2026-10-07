@@ -1316,8 +1316,9 @@
           <input type="date" id="day-analysis-date" onchange="renderAnaliseDia()">
         </div>
         <div class="day-analysis-control">
-          <label>Comparar com outra data (opcional)</label>
+          <label>Adicionar outra data à comparação (opcional)</label>
           <input type="date" id="day-analysis-compare" onchange="renderAnaliseDia()">
+          <div class="day-analysis-sub">A mesma data de anos anteriores já entra automaticamente.</div>
         </div>
         <button class="reload-btn" style="margin-left:0;margin-bottom:.05rem" type="button" onclick="document.getElementById('day-analysis-compare').value='';renderAnaliseDia()">Limpar compara&ccedil;&atilde;o</button>
         <div class="day-analysis-status" id="day-analysis-status">Aguardando dados...</div>
@@ -1831,15 +1832,17 @@ function dayMoney(v){
   return "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
-function renderDayComparisonCharts(items){
+function renderDayComparisonCharts(items,selectedDate){
   const labels=items.map(x=>dayDateBR(x.dateKey));
+  const barColors=items.map(x=>x.dateKey===selectedDate?"#b6ff00":"#1f8ed6");
+  const borderColors=items.map(x=>x.dateKey===selectedDate?"#d7ff66":"#38a7f0");
   const make=(key,canvasId,label,data,formatter)=>{
     dc(key);
     const el=document.getElementById(canvasId);
     if(!el) return;
     charts[key]=new Chart(el.getContext("2d"),{
       type:"bar",
-      data:{labels,datasets:[{label,data,borderWidth:1,borderRadius:7}]},
+      data:{labels,datasets:[{label,data,backgroundColor:barColors,borderColor:borderColors,borderWidth:1,borderRadius:7}]},
       options:{
         responsive:true,maintainAspectRatio:false,animation:false,
         plugins:{
@@ -1943,7 +1946,7 @@ async function renderAnaliseDia(){
       delta.innerHTML=`Comparação com <strong>${dayDateBR(previous.dateKey)}</strong>: receita <strong class="${pct>=0?"pos":"neg"}">${pct>=0?"+":""}${pct.toFixed(1)}%</strong>${pv===null?"":` · vendas <strong class="${pv>=0?"pos":"neg"}">${pv>=0?"+":""}${pv.toFixed(1)}%</strong>`}.`;
     }else delta.textContent="Sem data anterior equivalente disponível para cálculo de variação.";
   }
-  renderDayComparisonCharts(items);
+  renderDayComparisonCharts(items,selected);
   status.textContent=`${items.length} data${items.length===1?"":"s"} na comparação · clima exclusivamente histórico.`;
   requestAnimationFrame(()=>{applyNeonCards();resizeDashboardCharts();});
 }
