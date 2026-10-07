@@ -1082,6 +1082,41 @@
   .day-calendar-btn:hover{background:#b6ff00;color:#071007;box-shadow:0 0 16px rgba(182,255,0,.45)}
   .day-calendar-icon{font-size:1.25rem;line-height:1;filter:brightness(1.45) contrast(1.15)}
   .day-analysis-control input[type="date"]::-webkit-calendar-picker-indicator{opacity:0;width:0;padding:0;margin:0;cursor:pointer}
+  #day-analysis-date-control{position:relative}
+  #day-analysis-date{display:none}
+  .day-date-display{min-width:150px;height:40px;text-align:left;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem .75rem;border-radius:8px;font-family:var(--font-body);font-size:.9rem;font-weight:800;cursor:pointer}
+  .day-date-display:hover{border-color:#b6ff00}
+  .day-calendar-btn{width:42px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:2px solid #b6ff00;background:#b6ff00;color:#071007;cursor:pointer;box-shadow:0 0 14px rgba(182,255,0,.35);transition:all .18s}
+  .day-calendar-btn:hover{background:#d7ff66;border-color:#d7ff66;box-shadow:0 0 18px rgba(182,255,0,.55)}
+  .day-calendar-btn svg{width:21px;height:21px;stroke:currentColor;stroke-width:2.2;fill:none}
+  .day-calendar-popover{display:none;position:absolute;z-index:800;top:74px;left:0;width:338px;background:#111118;border:1px solid #35354a;border-radius:14px;padding:.85rem;box-shadow:0 18px 48px rgba(0,0,0,.62)}
+  .day-calendar-popover.open{display:block}
+  .day-calendar-head{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;gap:.45rem;margin-bottom:.7rem}
+  .day-calendar-month{text-align:center;font-family:var(--font-head);font-size:1.1rem;letter-spacing:.06em;color:#fff}
+  .day-calendar-nav{height:34px;border-radius:8px;border:1px solid var(--border);background:#1b1b25;color:#fff;font-size:1.25rem;font-weight:900;cursor:pointer}
+  .day-calendar-nav:hover{border-color:#b6ff00;color:#b6ff00}
+  .day-calendar-weekdays,.day-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .day-calendar-weekdays{margin-bottom:4px}
+  .day-calendar-weekdays span{font-size:.6rem;text-align:center;text-transform:uppercase;letter-spacing:.04em;color:#8f8cae;font-weight:800;padding:.22rem 0}
+  .day-calendar-weekdays span:nth-child(5),.day-calendar-weekdays span:nth-child(6),.day-calendar-weekdays span:nth-child(7){color:#ff4d5a;font-weight:950}
+  .day-cal-day{height:38px;border:1px solid transparent;border-radius:8px;background:#191922;color:#e9e8f5;font-family:var(--font-body);font-size:.78rem;font-weight:700;cursor:pointer;position:relative}
+  .day-cal-day:hover{border-color:#00e5ff;background:#202030}
+  .day-cal-day.outside{opacity:.28}
+  .day-cal-day.disabled{opacity:.18;cursor:not-allowed}
+  .day-cal-day.weekend{color:#ff4d5a;font-weight:950}
+  .day-cal-day.holiday{background:#f3ff00;color:#101014;font-weight:950;border-color:#f3ff00;box-shadow:0 0 9px rgba(243,255,0,.28)}
+  .day-cal-day.holiday.weekend{color:#c6002e}
+  .day-cal-day.holiday-eve{background:#1f8ed6;color:#fff;border-color:#38a7f0;font-weight:900}
+  .day-cal-day.holiday-eve.weekend{color:#ffb0b7}
+  .day-cal-day.selected{outline:2px solid #fff;outline-offset:1px}
+  .day-calendar-legend{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.7rem;padding-top:.65rem;border-top:1px solid var(--border);font-size:.62rem;color:#aaa8c3}
+  .day-calendar-legend span{display:flex;align-items:center;gap:.28rem}
+  .day-calendar-dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+  .day-calendar-dot.hol{background:#f3ff00}.day-calendar-dot.eve{background:#1f8ed6}.day-calendar-dot.week{background:#ff4d5a}
+  .day-analysis-metric.is-holiday .day-analysis-value{color:#f3ff00;font-weight:950;text-shadow:0 0 10px rgba(243,255,0,.22)}
+  .day-analysis-metric.is-weekend .day-analysis-sub{color:#ff4d5a;font-weight:950}
+  .day-analysis-table th.day-weekend-head,.day-analysis-table th.day-weekend-head .day-table-sub{color:#ff4d5a!important;font-weight:950!important}
+  .day-analysis-table td.day-holiday-cell{color:#f3ff00;font-weight:900}
 
   .day-analysis-status{font-size:.72rem;color:var(--muted);margin-left:auto;padding-bottom:.55rem}
   .day-analysis-primary{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:.8rem;margin-bottom:.85rem}
@@ -1318,13 +1353,28 @@
     <div class="section-title">An&aacute;lise do Dia <span class="tag">HIST&Oacute;RICO</span></div>
     <div class="day-analysis-card" id="day-analysis-card">
       <div class="day-analysis-controls">
-        <div class="day-analysis-control">
+        <div class="day-analysis-control" id="day-analysis-date-control">
           <label>Data principal</label>
           <div class="day-date-input-wrap">
-            <input type="date" id="day-analysis-date" onchange="renderAnaliseDia()" onclick="openDayDatePicker('day-analysis-date')">
-            <button class="day-calendar-btn" type="button" onclick="openDayDatePicker('day-analysis-date')" aria-label="Abrir calendário" title="Abrir calendário">
-              <span class="day-calendar-icon" aria-hidden="true">📅</span>
+            <input type="hidden" id="day-analysis-date">
+            <button class="day-date-display" id="day-analysis-date-display" type="button" onclick="openDayDatePicker()" aria-label="Escolher data">dd/mm/aaaa</button>
+            <button class="day-calendar-btn" type="button" onclick="openDayDatePicker()" aria-label="Abrir calendário" title="Abrir calendário">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg>
             </button>
+          </div>
+          <div class="day-calendar-popover" id="day-calendar-popover">
+            <div class="day-calendar-head">
+              <button class="day-calendar-nav" type="button" onclick="changeDayCalendarMonth(-1)" aria-label="Mês anterior">&#8249;</button>
+              <div class="day-calendar-month" id="day-calendar-month"></div>
+              <button class="day-calendar-nav" type="button" onclick="changeDayCalendarMonth(1)" aria-label="Próximo mês">&#8250;</button>
+            </div>
+            <div class="day-calendar-weekdays"><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span></div>
+            <div class="day-calendar-grid" id="day-calendar-grid"></div>
+            <div class="day-calendar-legend">
+              <span><i class="day-calendar-dot hol"></i>Feriado</span>
+              <span><i class="day-calendar-dot eve"></i>Véspera de feriado</span>
+              <span><i class="day-calendar-dot week"></i>Sex/Sáb/Dom</span>
+            </div>
           </div>
           <div class="day-analysis-sub">A comparação com a mesma data dos anos anteriores é automática.</div>
         </div>
@@ -1869,19 +1919,104 @@ function renderDayComparisonCharts(items,selectedDate){
   make("day-ticket","c-day-ticket","Ticket médio",items.map(x=>x.sales.ticket),v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}));
 }
 
-function dayMetricCard(label,value,sub){
-  return `<div class="day-analysis-metric"><div class="day-analysis-label">${label}</div><div class="day-analysis-value">${value}</div>${sub?`<div class="day-analysis-sub">${sub}</div>`:""}</div>`;
+function dayMetricCard(label,value,sub,extraClass=""){
+  return `<div class="day-analysis-metric ${extraClass}"><div class="day-analysis-label">${label}</div><div class="day-analysis-value">${value}</div>${sub?`<div class="day-analysis-sub">${sub}</div>`:""}</div>`;
 }
 
-function openDayDatePicker(id){
-  const el=document.getElementById(id);
-  if(!el) return;
-  try{
-    if(typeof el.showPicker==="function"){ el.showPicker(); return; }
-  }catch(_){}
-  el.focus();
-  try{ el.click(); }catch(_){}
+let dayCalendarCursor=null;
+
+function dayKeyFromDate(dt){
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
 }
+
+function isWeekendDayKey(dateKey){
+  const dt=new Date(dateKey+"T12:00:00");
+  const d=dt.getDay();
+  return d===5 || d===6 || d===0;
+}
+
+function dayBeforeHolidayInfo(dateKey){
+  const dt=new Date(dateKey+"T12:00:00");
+  dt.setDate(dt.getDate()+1);
+  const nextKey=dayKeyFromDate(dt);
+  const h=holidayInfoDayAnalysis(nextKey);
+  return h.isHoliday?{isEve:true,holiday:h,dateKey:nextKey}:{isEve:false};
+}
+
+function syncDayDateDisplay(){
+  const el=document.getElementById("day-analysis-date");
+  const display=document.getElementById("day-analysis-date-display");
+  if(display) display.textContent=el?.value?dayDateBR(el.value):"dd/mm/aaaa";
+}
+
+function openDayDatePicker(){
+  const pop=document.getElementById("day-calendar-popover");
+  const sel=document.getElementById("day-analysis-date");
+  if(!pop||!sel) return;
+  if(pop.classList.contains("open")){ pop.classList.remove("open"); return; }
+  const base=sel.value?new Date(sel.value+"T12:00:00"):new Date();
+  dayCalendarCursor=new Date(base.getFullYear(),base.getMonth(),1,12,0,0);
+  renderDayCalendar();
+  pop.classList.add("open");
+}
+
+function closeDayDatePicker(){
+  document.getElementById("day-calendar-popover")?.classList.remove("open");
+}
+
+function changeDayCalendarMonth(delta){
+  if(!dayCalendarCursor) dayCalendarCursor=new Date();
+  dayCalendarCursor=new Date(dayCalendarCursor.getFullYear(),dayCalendarCursor.getMonth()+delta,1,12,0,0);
+  renderDayCalendar();
+}
+
+function renderDayCalendar(){
+  const grid=document.getElementById("day-calendar-grid");
+  const label=document.getElementById("day-calendar-month");
+  const sel=document.getElementById("day-analysis-date");
+  if(!grid||!label||!sel||!dayCalendarCursor) return;
+  const y=dayCalendarCursor.getFullYear(),m=dayCalendarCursor.getMonth();
+  label.textContent=new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(dayCalendarCursor);
+  const first=new Date(y,m,1,12,0,0);
+  const offset=(first.getDay()+6)%7;
+  const start=new Date(y,m,1-offset,12,0,0);
+  const min=sel.dataset.min||"",max=sel.dataset.max||"";
+  const cells=[];
+  for(let i=0;i<42;i++){
+    const dt=new Date(start); dt.setDate(start.getDate()+i);
+    const key=dayKeyFromDate(dt);
+    const inMonth=dt.getMonth()===m;
+    const weekend=[5,6,0].includes(dt.getDay());
+    const hol=holidayInfoDayAnalysis(key);
+    const eve=dayBeforeHolidayInfo(key);
+    const disabled=(min&&key<min)||(max&&key>max);
+    const classes=["day-cal-day"];
+    if(!inMonth) classes.push("outside");
+    if(weekend) classes.push("weekend");
+    if(hol.isHoliday) classes.push("holiday");
+    else if(eve.isEve) classes.push("holiday-eve");
+    if(key===sel.value) classes.push("selected");
+    if(disabled) classes.push("disabled");
+    let title=hol.isHoliday?`${hol.name} — ${hol.type}`:(eve.isEve?`Véspera de ${eve.holiday.name}`:"");
+    cells.push(`<button type="button" class="${classes.join(" ")}" ${disabled?"disabled":""} onclick="selectDayCalendarDate('${key}')" title="${title.replace(/"/g,"&quot;")}">${dt.getDate()}</button>`);
+  }
+  grid.innerHTML=cells.join("");
+}
+
+function selectDayCalendarDate(dateKey){
+  const sel=document.getElementById("day-analysis-date");
+  if(!sel) return;
+  sel.value=dateKey;
+  syncDayDateDisplay();
+  closeDayDatePicker();
+  renderAnaliseDia();
+}
+
+document.addEventListener("click",e=>{
+  const control=document.getElementById("day-analysis-date-control");
+  const pop=document.getElementById("day-calendar-popover");
+  if(pop?.classList.contains("open") && control && !control.contains(e.target)) closeDayDatePicker();
+});
 
 function initAnaliseDia(){
   const sel=document.getElementById("day-analysis-date");
@@ -1891,8 +2026,11 @@ function initAnaliseDia(){
     document.getElementById("day-analysis-status").textContent="Nenhuma data válida encontrada na coluna B da VendasOperador.";
     return;
   }
-  sel.min=dates[0]; sel.max=dates[dates.length-1];
+  sel.dataset.min=dates[0]; sel.dataset.max=dates[dates.length-1];
   if(!sel.value || !dates.includes(sel.value)) sel.value=dates[dates.length-1];
+  syncDayDateDisplay();
+  const base=new Date(sel.value+"T12:00:00");
+  dayCalendarCursor=new Date(base.getFullYear(),base.getMonth(),1,12,0,0);
   renderAnaliseDia();
 }
 
@@ -1922,8 +2060,8 @@ async function renderAnaliseDia(){
   const temp=w.available && Number.isFinite(w.tmin) && Number.isFinite(w.tmax)?`${w.tmin.toFixed(1)}° / ${w.tmax.toFixed(1)}°`:"—";
   const chuva=w.available?`${w.precip.toFixed(1)} mm`:"—";
   cards.innerHTML=[
-    dayMetricCard("Data",dayDateBR(primary.dateKey),dayDateLong(primary.dateKey)),
-    dayMetricCard("Dia / Feriado",primary.holiday.isHoliday?primary.holiday.name:"Dia normal",primary.holiday.isHoliday?primary.holiday.type:""),
+    dayMetricCard("Data",dayDateBR(primary.dateKey),dayDateLong(primary.dateKey),isWeekendDayKey(primary.dateKey)?"is-weekend":""),
+    dayMetricCard("Dia / Feriado",primary.holiday.isHoliday?primary.holiday.name:"Dia normal",primary.holiday.isHoliday?primary.holiday.type:"",primary.holiday.isHoliday?"is-holiday":""),
     dayMetricCard("Clima histórico",clima,w.available?`${w.detail} · ${chuva} · ${temp}`:""),
     dayMetricCard("Atração Janela",primary.context.atracoes.join(" · ")||"Nenhuma registrada",""),
     dayMetricCard("Evento cidade",primary.context.eventos.join(" · ")||"Nenhum registrado",primary.context.locais.length?primary.context.locais.join(" · "):""),
@@ -1932,10 +2070,10 @@ async function renderAnaliseDia(){
     dayMetricCard("Ticket médio",primary.sales.vendas>0?dayMoney(primary.sales.ticket):"—","Líquido ÷ quantidade de vendas")
   ].join("");
 
-  const head=items.map(x=>`<th>${dayDateBR(x.dateKey)}<div class="day-table-sub">${dayDateLong(x.dateKey).split(",")[0]}</div></th>`).join("");
+  const head=items.map(x=>`<th class="${isWeekendDayKey(x.dateKey)?"day-weekend-head":""}">${dayDateBR(x.dateKey)}<div class="day-table-sub">${dayDateLong(x.dateKey).split(",")[0]}</div></th>`).join("");
   const cell=(v,cls="")=>`<td class="${cls}">${v}</td>`;
   const rows=[
-    ["Feriado",...items.map(x=>x.holiday.isHoliday?`${x.holiday.name}<div class="day-table-sub">${x.holiday.type}</div>`:"Dia normal")],
+    ["Feriado",...items.map(x=>x.holiday.isHoliday?`<span class="day-holiday-cell">${x.holiday.name}</span><div class="day-table-sub">${x.holiday.type}</div>`:"Dia normal")],
     ["Clima",...items.map(x=>x.weather.available?`${x.weather.label}<div class="day-table-sub">${x.weather.detail}</div>`:x.weather.reason)],
     ["Chuva",...items.map(x=>x.weather.available?`${x.weather.precip.toFixed(1)} mm`:"—")],
     ["Temperatura",...items.map(x=>x.weather.available&&Number.isFinite(x.weather.tmin)&&Number.isFinite(x.weather.tmax)?`${x.weather.tmin.toFixed(1)}° / ${x.weather.tmax.toFixed(1)}°`:"—")],
