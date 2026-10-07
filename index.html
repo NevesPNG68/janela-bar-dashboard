@@ -1067,6 +1067,33 @@
   .weekly-empty{padding:1rem;color:var(--muted);font-size:.82rem;text-align:center}
   @media(max-width:700px){.weekly-demo-table{min-width:680px;font-size:.74rem}.weekly-demo-table th,.weekly-demo-table td{padding:.54rem .55rem}.weekly-legend{font-size:.66rem}}
 
+
+  /* ── ANÁLISE DO DIA ── */
+  .day-analysis-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.2rem;margin-bottom:1rem;position:relative;overflow:hidden}
+  .day-analysis-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#00e5ff;box-shadow:0 0 14px rgba(0,229,255,.45)}
+  .day-analysis-controls{display:flex;align-items:flex-end;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem}
+  .day-analysis-control{display:flex;flex-direction:column;gap:.28rem}
+  .day-analysis-control label{font-size:.63rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:800}
+  .day-analysis-control input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem .7rem;border-radius:8px;font-family:var(--font-body);font-size:.88rem}
+  .day-analysis-control input:focus{outline:none;border-color:#00e5ff}
+  .day-analysis-status{font-size:.72rem;color:var(--muted);margin-left:auto;padding-bottom:.55rem}
+  .day-analysis-primary{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:.8rem;margin-bottom:.85rem}
+  .day-analysis-metric{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:.85rem 1rem;min-height:88px}
+  .day-analysis-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:800;margin-bottom:.35rem}
+  .day-analysis-value{font-family:var(--font-head);font-size:1.25rem;letter-spacing:.035em;color:var(--text);line-height:1.15}
+  .day-analysis-sub,.day-table-sub{font-size:.68rem;color:var(--muted);margin-top:.28rem;line-height:1.35}
+  .day-analysis-delta{font-size:.8rem;color:#d9d6ff;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.65rem .8rem;margin-bottom:1rem}
+  .day-analysis-delta .pos{color:#86efac}.day-analysis-delta .neg{color:#fca5a5}
+  .day-analysis-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}
+  .day-analysis-table{min-width:760px}
+  .day-analysis-table thead th{position:sticky;top:0;background:#1f1f2e;color:#f1f1fb}
+  .day-analysis-table tbody th{padding:.58rem .8rem;text-align:left;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;background:#15151d;white-space:nowrap}
+  .day-analysis-table td{padding:.58rem .8rem;border-bottom:1px solid #1c1c28;vertical-align:top;min-width:145px}
+  .day-analysis-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+  .day-analysis-chart-wrap{height:230px;position:relative}
+  @media(max-width:1000px){.day-analysis-primary{grid-template-columns:repeat(2,minmax(150px,1fr))}.day-analysis-charts{grid-template-columns:1fr}}
+  @media(max-width:620px){.day-analysis-primary{grid-template-columns:1fr}.day-analysis-status{width:100%;margin-left:0}.day-analysis-control{width:100%}.day-analysis-control input{width:100%}}
+
 </style>
 
 
@@ -1280,6 +1307,31 @@
       <div class="chart-card"><h3>Acumulo de Vendas por Hora</h3><div class="chart-wrap"><canvas id="c-vendas-hora" height="260"></canvas></div></div>
     </div>
 
+
+    <div class="section-title">An&aacute;lise do Dia <span class="tag">HIST&Oacute;RICO</span></div>
+    <div class="day-analysis-card" id="day-analysis-card">
+      <div class="day-analysis-controls">
+        <div class="day-analysis-control">
+          <label>Data principal</label>
+          <input type="date" id="day-analysis-date" onchange="renderAnaliseDia()">
+        </div>
+        <div class="day-analysis-control">
+          <label>Comparar com outra data (opcional)</label>
+          <input type="date" id="day-analysis-compare" onchange="renderAnaliseDia()">
+        </div>
+        <button class="reload-btn" style="margin-left:0;margin-bottom:.05rem" type="button" onclick="document.getElementById('day-analysis-compare').value='';renderAnaliseDia()">Limpar compara&ccedil;&atilde;o</button>
+        <div class="day-analysis-status" id="day-analysis-status">Aguardando dados...</div>
+      </div>
+      <div class="day-analysis-primary" id="day-analysis-primary"></div>
+      <div class="day-analysis-delta" id="day-analysis-delta"></div>
+      <div class="day-analysis-table-wrap" id="day-analysis-table"></div>
+    </div>
+    <div class="day-analysis-charts">
+      <div class="chart-card"><h3>Quantidade de Vendas por Data</h3><div class="day-analysis-chart-wrap"><canvas id="c-day-sales"></canvas></div></div>
+      <div class="chart-card"><h3>Vendas L&iacute;quidas por Data</h3><div class="day-analysis-chart-wrap"><canvas id="c-day-revenue"></canvas></div></div>
+      <div class="chart-card"><h3>Ticket M&eacute;dio por Data</h3><div class="day-analysis-chart-wrap"><canvas id="c-day-ticket"></canvas></div></div>
+    </div>
+
     <div class="section-title">Faturamento por Semana <span class="tag">SEMANAL</span></div>
     <div style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>Receita L&iacute;quida por Semana do M&ecirc;s</h3><div class="chart-wrap" style="position:relative;height:260px"><canvas id="c-semana"></canvas></div></div>
@@ -1339,9 +1391,9 @@
 
 <script>
 // Colunas da aba VendasOperador (base 0):
-// 6=Tipo venda, 8=Produto, 9=Quantidade, 12=Total R$
+// 1=Data, 6=Tipo venda, 8=Produto, 9=Quantidade, 12=Total R$
 // 13=Forma de Pagamento, 16=Grupo, 17=DIA SEMANA
-// 19=FAIXA DE HORA, 20=Mes/Ano, 21=Liquido, 22=Qt.VENDAS
+// 19=FAIXA DE HORA, 20=Mes/Ano, 21=Liquido, 22=Qt.VENDAS, 23=Ticket Médio
 
 // ── CONFIGURAÇÃO DA BASE ──
 // Modo híbrido: permite carregar do Dropbox ou selecionar a planilha localmente.
@@ -1361,6 +1413,10 @@ let drinkAnalysisData=[]; // dados da aba ANÁLISE DRINK
 let projecaoData=null; // dados da aba Projeção
 let dadosDespesas=[]; // dados da aba Despesas para auditoria
 let drinkQtyCache={}; // cache de quantidades por mês/grupo/semana para evitar travamentos no render
+let attractionData=[]; // aba ATRAÇÃO: data, atração do Janela, evento da cidade e local
+let dayAnalysisWeatherCache={};
+let dayAnalysisRequestToken=0;
+const DAY_ANALYSIS_COORDS={lat:-25.52,lon:-48.51};
 
 const DIAS  = ["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado","Domingo"];
 const HORAS = ["00:00 - 01:00","01:00 - 02:00","02:00 - 03:00","03:00 - 04:00","15:00 - 16:00","16:00 - 17:00","17:00 - 18:00","18:00 - 19:00","19:00 - 20:00","20:00 - 21:00","21:00 - 22:00","22:00 - 23:00","23:00 - 00:00"];
@@ -1436,6 +1492,7 @@ function load(file){
           setProgress(45, "Processando " + (raw.length-1) + " registros...");
           nextFrame(()=>{
             allData = raw.slice(1).map(r=>({
+              data:      normalizeExcelDate(r[1]),
               tipo:      String(r[6] ||"").trim(),
               produto:   String(r[8] ||"").trim(),
               qtd:       parseFloat(r[9]) ||0,
@@ -1447,11 +1504,14 @@ function load(file){
               mes:       String(r[20]||"").trim(),
               liquido:   parseFloat(r[21])||0,
               qtven:     parseFloat(r[22])||0,
+              tkt:       parseFloat(r[23])||0,
               semana:    parseFloat(r[18])||0,
               qt_double: parseFloat(r[25])||0,
               qt_final:  parseFloat(r[26])||0,
               quinzena:  String(r[24]||"").trim(),
             })).filter(r=>r.liquido!==0);
+
+            attractionData = parseAttractionSheet(wb);
 
             if(!allData.length){ _loadErr(new Error("Nenhum dado valido. Verifique a aba VendasOperador.")); return; }
 
@@ -1547,6 +1607,7 @@ function load(file){
                 nextFrame(()=>{
                   populateFilters();
                   audPopulateFiltros();
+                  initAnaliseDia();
 
                   // Etapa 8: renderizar
                   setProgress(97, "Renderizando dashboard...");
@@ -1577,6 +1638,314 @@ function _loadErr(err){
   const status = document.getElementById("hosted-status");
   if(status) status.innerHTML = "Erro ao processar a planilha: " + err.message;
   console.error(err);
+}
+
+// ── ANÁLISE HISTÓRICA POR DATA ──
+function normalizeExcelDate(v){
+  if(v===null || v===undefined || v==="") return "";
+  if(v instanceof Date && !isNaN(v)){
+    const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,"0"), d=String(v.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  if(typeof v==="number" && isFinite(v)){
+    try{
+      const p=XLSX.SSF.parse_date_code(v);
+      if(p && p.y && p.m && p.d) return `${String(p.y).padStart(4,"0")}-${String(p.m).padStart(2,"0")}-${String(p.d).padStart(2,"0")}`;
+    }catch(_){}
+  }
+  const s=String(v).trim();
+  let m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if(m){
+    let y=Number(m[3]); if(y<100) y+=2000;
+    return `${String(y).padStart(4,"0")}-${String(Number(m[2])).padStart(2,"0")}-${String(Number(m[1])).padStart(2,"0")}`;
+  }
+  m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return `${m[1]}-${String(Number(m[2])).padStart(2,"0")}-${String(Number(m[3])).padStart(2,"0")}`;
+  const dt=new Date(s);
+  if(!isNaN(dt)){
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+  }
+  return "";
+}
+
+function parseAttractionSheet(wb){
+  const norm=s=>String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
+  const sn=wb.SheetNames.find(n=>norm(n)==="atracao") || wb.SheetNames.find(n=>norm(n).includes("atracao"));
+  if(!sn) return [];
+  const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:""});
+  if(!raw.length) return [];
+  const hdr=(raw[0]||[]).map(norm);
+  const find=(...names)=>hdr.findIndex(h=>names.includes(h));
+  const iData=find("data");
+  const iAtr=find("atracaojanela","atracao");
+  const iEvt=find("eventocidade","evento");
+  const iLoc=find("local","localdoevento");
+  if(iData<0) return [];
+  return raw.slice(1).map(r=>({
+    data:normalizeExcelDate(r[iData]),
+    atracao:iAtr>=0?String(r[iAtr]||"").trim():"",
+    evento:iEvt>=0?String(r[iEvt]||"").trim():"",
+    local:iLoc>=0?String(r[iLoc]||"").trim():""
+  })).filter(r=>r.data && (r.atracao||r.evento||r.local));
+}
+
+function dayDateBR(k){
+  if(!k) return "—";
+  const p=k.split("-");
+  return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:k;
+}
+
+function dayDateLong(k){
+  if(!k) return "—";
+  const dt=new Date(k+"T12:00:00");
+  return new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"}).format(dt);
+}
+
+function dayContextForDate(dateKey){
+  const rows=attractionData.filter(r=>r.data===dateKey);
+  const uniq=a=>[...new Set(a.map(v=>String(v||"").trim()).filter(Boolean))];
+  return {
+    atracoes:uniq(rows.map(r=>r.atracao)),
+    eventos:uniq(rows.map(r=>r.evento)),
+    locais:uniq(rows.map(r=>r.local))
+  };
+}
+
+function daySalesForDate(dateKey){
+  const rows=allData.filter(d=>d.data===dateKey);
+  const liquido=rows.reduce((s,d)=>s+(Number(d.liquido)||0),0);
+  const vendas=rows.reduce((s,d)=>s+(Number(d.qtven)||0),0);
+  return {
+    dateKey,
+    rows,
+    vendas,
+    liquido,
+    ticket:vendas>0?liquido/vendas:0,
+    exists:rows.length>0
+  };
+}
+
+function easterDateDayAnalysis(year){
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(year,month-1,day,12,0,0);
+}
+
+function isoFromLocalDateDayAnalysis(dt){
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+}
+
+function holidayInfoDayAnalysis(dateKey){
+  const year=Number(dateKey.slice(0,4));
+  const mmdd=dateKey.slice(5);
+  const fixed={
+    "01-01":["Confraternização Universal","Feriado nacional"],
+    "04-21":["Tiradentes","Feriado nacional"],
+    "05-01":["Dia do Trabalho","Feriado nacional"],
+    "07-29":["Aniversário de Paranaguá","Feriado municipal"],
+    "09-07":["Independência do Brasil","Feriado nacional"],
+    "10-07":["Nossa Senhora do Rosário","Feriado municipal"],
+    "10-12":["Nossa Senhora Aparecida","Feriado nacional"],
+    "11-02":["Finados","Feriado nacional"],
+    "11-15":["Proclamação da República","Feriado nacional"],
+    "12-25":["Natal","Feriado nacional"]
+  };
+  if(mmdd==="11-20" && year>=2024) return {isHoliday:true,name:"Dia Nacional de Zumbi e da Consciência Negra",type:"Feriado nacional"};
+  if(fixed[mmdd]) return {isHoliday:true,name:fixed[mmdd][0],type:fixed[mmdd][1]};
+  const easter=easterDateDayAnalysis(year);
+  const goodFriday=new Date(easter); goodFriday.setDate(easter.getDate()-2);
+  const corpus=new Date(easter); corpus.setDate(easter.getDate()+60);
+  if(dateKey===isoFromLocalDateDayAnalysis(goodFriday)) return {isHoliday:true,name:"Paixão de Cristo","type":"Feriado religioso/local"};
+  if(dateKey===isoFromLocalDateDayAnalysis(corpus)) return {isHoliday:true,name:"Corpus Christi","type":"Feriado religioso/local"};
+  return {isHoliday:false,name:"Dia normal",type:""};
+}
+
+function weatherLabelDayAnalysis(code,precip){
+  const c=Number(code);
+  const rainCodes=new Set([51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99]);
+  if((Number(precip)||0)>=1 || rainCodes.has(c)) return "Chuva";
+  if([0,1].includes(c)) return "Clima bom";
+  if(c===2) return "Parcialmente nublado";
+  if(c===3) return "Nublado";
+  if([45,48].includes(c)) return "Neblina";
+  return "Sem chuva relevante";
+}
+
+function weatherDetailDayAnalysis(code){
+  const m={
+    0:"Céu limpo",1:"Predominantemente limpo",2:"Parcialmente nublado",3:"Nublado",
+    45:"Neblina",48:"Neblina com geada",51:"Garoa fraca",53:"Garoa moderada",55:"Garoa forte",
+    56:"Garoa congelante fraca",57:"Garoa congelante forte",61:"Chuva fraca",63:"Chuva moderada",65:"Chuva forte",
+    66:"Chuva congelante fraca",67:"Chuva congelante forte",71:"Neve fraca",73:"Neve moderada",75:"Neve forte",
+    77:"Grãos de neve",80:"Pancadas de chuva fracas",81:"Pancadas de chuva moderadas",82:"Pancadas de chuva fortes",
+    85:"Pancadas de neve fracas",86:"Pancadas de neve fortes",95:"Tempestade",96:"Tempestade com granizo",99:"Tempestade forte com granizo"
+  };
+  return m[Number(code)]||"Condição não classificada";
+}
+
+async function historicalWeatherDayAnalysis(dateKey){
+  if(dayAnalysisWeatherCache[dateKey]) return dayAnalysisWeatherCache[dateKey];
+  const today=isoFromLocalDateDayAnalysis(new Date());
+  if(dateKey>=today){
+    return {available:false,reason:"Histórico ainda não disponível"};
+  }
+  const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${DAY_ANALYSIS_COORDS.lat}&longitude=${DAY_ANALYSIS_COORDS.lon}&start_date=${dateKey}&end_date=${dateKey}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=America%2FSao_Paulo`;
+  try{
+    const resp=await fetch(url,{cache:"no-store"});
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const j=await resp.json();
+    const daily=j&&j.daily;
+    if(!daily || !daily.time || !daily.time.length) throw new Error("sem dados");
+    const w={
+      available:true,
+      code:daily.weather_code?.[0],
+      tmax:Number(daily.temperature_2m_max?.[0]),
+      tmin:Number(daily.temperature_2m_min?.[0]),
+      precip:Number(daily.precipitation_sum?.[0])||0
+    };
+    w.label=weatherLabelDayAnalysis(w.code,w.precip);
+    w.detail=weatherDetailDayAnalysis(w.code);
+    dayAnalysisWeatherCache[dateKey]=w;
+    return w;
+  }catch(err){
+    console.warn("Clima histórico indisponível para",dateKey,err);
+    return {available:false,reason:"Histórico não disponível"};
+  }
+}
+
+function comparisonDatesDayAnalysis(selected,freeCompare){
+  if(!selected) return [];
+  const md=selected.slice(5);
+  const ySel=Number(selected.slice(0,4));
+  let dates=[...new Set(allData.map(d=>d.data).filter(Boolean))]
+    .filter(k=>k.slice(5)===md && Number(k.slice(0,4))<=ySel)
+    .sort()
+    .slice(-5);
+  if(!dates.includes(selected)) dates.push(selected);
+  if(freeCompare && !dates.includes(freeCompare)) dates.push(freeCompare);
+  return [...new Set(dates)].sort();
+}
+
+function dayMoney(v){
+  return "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function renderDayComparisonCharts(items){
+  const labels=items.map(x=>dayDateBR(x.dateKey));
+  const make=(key,canvasId,label,data,formatter)=>{
+    dc(key);
+    const el=document.getElementById(canvasId);
+    if(!el) return;
+    charts[key]=new Chart(el.getContext("2d"),{
+      type:"bar",
+      data:{labels,datasets:[{label,data,borderWidth:1,borderRadius:7}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{backgroundColor:"#111118",borderColor:"#00e5ff",borderWidth:1,titleColor:"#fff",bodyColor:"#fff",
+            callbacks:{label:c=>" "+label+": "+formatter(c.raw)}}
+        },
+        scales:{
+          x:{ticks:{color:"#d9d6ff",font:{family:"DM Sans",size:10,weight:"800"}},grid:{color:"rgba(255,255,255,.06)"}},
+          y:{beginAtZero:true,ticks:{color:"#d9d6ff",font:{family:"DM Sans",size:10,weight:"800"},callback:formatter},grid:{color:"rgba(255,255,255,.07)"}}
+        }
+      }
+    });
+  };
+  make("day-sales","c-day-sales","Vendas",items.map(x=>x.sales.vendas),v=>Math.round(Number(v||0)).toLocaleString("pt-BR"));
+  make("day-revenue","c-day-revenue","Receita líquida",items.map(x=>x.sales.liquido),v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:0}));
+  make("day-ticket","c-day-ticket","Ticket médio",items.map(x=>x.sales.ticket),v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}));
+}
+
+function dayMetricCard(label,value,sub){
+  return `<div class="day-analysis-metric"><div class="day-analysis-label">${label}</div><div class="day-analysis-value">${value}</div>${sub?`<div class="day-analysis-sub">${sub}</div>`:""}</div>`;
+}
+
+function initAnaliseDia(){
+  const sel=document.getElementById("day-analysis-date");
+  const cmp=document.getElementById("day-analysis-compare");
+  if(!sel || !cmp) return;
+  const dates=[...new Set(allData.map(d=>d.data).filter(Boolean))].sort();
+  if(!dates.length){
+    document.getElementById("day-analysis-status").textContent="Nenhuma data válida encontrada na coluna B da VendasOperador.";
+    return;
+  }
+  sel.min=dates[0]; sel.max=dates[dates.length-1];
+  cmp.min=dates[0]; cmp.max=dates[dates.length-1];
+  if(!sel.value || !dates.includes(sel.value)) sel.value=dates[dates.length-1];
+  renderAnaliseDia();
+}
+
+async function renderAnaliseDia(){
+  const sel=document.getElementById("day-analysis-date");
+  const cmp=document.getElementById("day-analysis-compare");
+  const status=document.getElementById("day-analysis-status");
+  const cards=document.getElementById("day-analysis-primary");
+  const table=document.getElementById("day-analysis-table");
+  if(!sel||!cards||!table) return;
+  const selected=sel.value;
+  if(!selected){ status.textContent="Escolha uma data."; return; }
+  const token=++dayAnalysisRequestToken;
+  status.textContent="Carregando contexto histórico...";
+  const dates=comparisonDatesDayAnalysis(selected,cmp?.value||"");
+  const baseItems=dates.map(dateKey=>({
+    dateKey,
+    sales:daySalesForDate(dateKey),
+    context:dayContextForDate(dateKey),
+    holiday:holidayInfoDayAnalysis(dateKey)
+  }));
+  const weather=await Promise.all(dates.map(historicalWeatherDayAnalysis));
+  if(token!==dayAnalysisRequestToken) return;
+  const items=baseItems.map((x,i)=>({...x,weather:weather[i]}));
+  const primary=items.find(x=>x.dateKey===selected)||items[items.length-1];
+  const w=primary.weather;
+  const clima=w.available?w.label:w.reason;
+  const temp=w.available && Number.isFinite(w.tmin) && Number.isFinite(w.tmax)?`${w.tmin.toFixed(1)}° / ${w.tmax.toFixed(1)}°`:"—";
+  const chuva=w.available?`${w.precip.toFixed(1)} mm`:"—";
+  cards.innerHTML=[
+    dayMetricCard("Data",dayDateBR(primary.dateKey),dayDateLong(primary.dateKey)),
+    dayMetricCard("Dia / Feriado",primary.holiday.isHoliday?primary.holiday.name:"Dia normal",primary.holiday.isHoliday?primary.holiday.type:""),
+    dayMetricCard("Clima histórico",clima,w.available?`${w.detail} · ${chuva} · ${temp}`:""),
+    dayMetricCard("Atração Janela",primary.context.atracoes.join(" · ")||"Nenhuma registrada",""),
+    dayMetricCard("Evento cidade",primary.context.eventos.join(" · ")||"Nenhum registrado",primary.context.locais.length?primary.context.locais.join(" · "):""),
+    dayMetricCard("Qt. de vendas",Math.round(primary.sales.vendas).toLocaleString("pt-BR"),primary.sales.exists?`${primary.sales.rows.length.toLocaleString("pt-BR")} linhas de venda`:"Sem vendas na base"),
+    dayMetricCard("Vendas líquidas",dayMoney(primary.sales.liquido),"Coluna V"),
+    dayMetricCard("Ticket médio",primary.sales.vendas>0?dayMoney(primary.sales.ticket):"—","Líquido ÷ quantidade de vendas")
+  ].join("");
+
+  const head=items.map(x=>`<th>${dayDateBR(x.dateKey)}<div class="day-table-sub">${dayDateLong(x.dateKey).split(",")[0]}</div></th>`).join("");
+  const cell=(v,cls="")=>`<td class="${cls}">${v}</td>`;
+  const rows=[
+    ["Feriado",...items.map(x=>x.holiday.isHoliday?`${x.holiday.name}<div class="day-table-sub">${x.holiday.type}</div>`:"Dia normal")],
+    ["Clima",...items.map(x=>x.weather.available?`${x.weather.label}<div class="day-table-sub">${x.weather.detail}</div>`:x.weather.reason)],
+    ["Chuva",...items.map(x=>x.weather.available?`${x.weather.precip.toFixed(1)} mm`:"—")],
+    ["Temperatura",...items.map(x=>x.weather.available&&Number.isFinite(x.weather.tmin)&&Number.isFinite(x.weather.tmax)?`${x.weather.tmin.toFixed(1)}° / ${x.weather.tmax.toFixed(1)}°`:"—")],
+    ["Atração Janela",...items.map(x=>x.context.atracoes.join(" · ")||"—")],
+    ["Evento cidade",...items.map(x=>x.context.eventos.join(" · ")||"—")],
+    ["Local",...items.map(x=>x.context.locais.join(" · ")||"—")],
+    ["Qt. vendas",...items.map(x=>Math.round(x.sales.vendas).toLocaleString("pt-BR"))],
+    ["Vendas líquidas",...items.map(x=>dayMoney(x.sales.liquido))],
+    ["Ticket médio",...items.map(x=>x.sales.vendas>0?dayMoney(x.sales.ticket):"—")]
+  ];
+  table.innerHTML=`<table class="day-analysis-table"><thead><tr><th>Indicador</th>${head}</tr></thead><tbody>${
+    rows.map(r=>`<tr><th>${r[0]}</th>${r.slice(1).map(v=>cell(v)).join("")}</tr>`).join("")
+  }</tbody></table>`;
+
+  const selectedIndex=items.findIndex(x=>x.dateKey===selected);
+  const previous=selectedIndex>0?items[selectedIndex-1]:null;
+  const delta=document.getElementById("day-analysis-delta");
+  if(delta){
+    if(previous && previous.sales.liquido>0){
+      const pct=(primary.sales.liquido/previous.sales.liquido-1)*100;
+      const pv=previous.sales.vendas>0?(primary.sales.vendas/previous.sales.vendas-1)*100:null;
+      delta.innerHTML=`Comparação com <strong>${dayDateBR(previous.dateKey)}</strong>: receita <strong class="${pct>=0?"pos":"neg"}">${pct>=0?"+":""}${pct.toFixed(1)}%</strong>${pv===null?"":` · vendas <strong class="${pv>=0?"pos":"neg"}">${pv>=0?"+":""}${pv.toFixed(1)}%</strong>`}.`;
+    }else delta.textContent="Sem data anterior equivalente disponível para cálculo de variação.";
+  }
+  renderDayComparisonCharts(items);
+  status.textContent=`${items.length} data${items.length===1?"":"s"} na comparação · clima exclusivamente histórico.`;
+  requestAnimationFrame(()=>{applyNeonCards();resizeDashboardCharts();});
 }
 
 // FILTERS
