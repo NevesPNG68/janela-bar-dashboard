@@ -1149,6 +1149,7 @@
   .day-diagnosis-base{font-size:.72rem;color:var(--muted);text-align:right;line-height:1.4}
   .day-diagnosis-summary{font-size:.86rem;line-height:1.55;color:#ececf8;background:#121219;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.8rem .9rem;margin-bottom:.85rem}
   .day-diagnosis-summary strong.pos{color:#54ff8a}.day-diagnosis-summary strong.neg{color:#ff3344}.day-diagnosis-summary strong.neu{color:#f3ff00}
+  .day-signed-pct{font-weight:900!important}.day-signed-pct.negative{color:#ff3344!important}.day-signed-pct.positive{color:#54ff8a!important}.day-signed-pct.neutral{color:#e4e4e8!important}
   .day-diagnosis-factors{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:.7rem;margin-bottom:.85rem}
   .day-factor{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem .8rem;min-height:112px}
   .day-factor-title{font-size:.63rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:850;margin-bottom:.28rem}
@@ -2113,7 +2114,26 @@ function dayDiagWeekdayName(dateKey){
 
 function dayDiagOperationalProfile(dateKey){
   const d=dayDiagWeekdayIndex(dateKey);
-  return [5,6,0].includes(d)?"Sex/Sáb/Dom":"Seg–Qui";
+  if(d===1) return holidayInfoDayAnalysis(dateKey).isHoliday?"Seg/feriado":"Seg/fechado";
+  return [5,6,0].includes(d)?"Sex/Sáb/Dom":"Ter–Qui";
+}
+function dayDiagComparable(a,b){
+  // Não mistura dias sem operação, feriados e dias normais.
+  const ha=a.holiday.isHoliday,hb=b.holiday.isHoliday;
+  if(ha!==hb) return false;
+  if(dayDiagWeekdayIndex(a.dateKey)===1 || dayDiagWeekdayIndex(b.dateKey)===1)
+    return dayDiagWeekdayIndex(a.dateKey)===dayDiagWeekdayIndex(b.dateKey);
+  return dayDiagOperationalProfile(a.dateKey)===dayDiagOperationalProfile(b.dateKey);
+}
+function dayDiagSigned(v){
+  if(v===null || !Number.isFinite(v)) return "—";
+  return '<strong class="day-signed-pct '+(v<0?'negative':v>0?'positive':'neutral')+'">'+dayDiagPctText(v)+'</strong>';
+}
+function dayDiagColorPercentages(html){
+  return html.replace(/([+−-]?\d+(?:[.,]\d+)?%)/g,(full)=>{
+    const n=Number(full.replace(',','.').replace('−','-'));
+    return '<strong class="day-signed-pct '+(n<0?'negative':n>0?'positive':'neutral')+'">'+full+'</strong>';
+  });
 }
 
 function dayDiagDailySeries(selected){
@@ -2170,9 +2190,12 @@ function dayDiagFactor(items,predicate,labels){
   const delta=dayDiagPct(revYes,revNo),salesDelta=dayDiagPct(salesYes,salesNo);
   const minGroup=Math.min(yes.length,no.length);
   const conf=minGroup>=4?"confiança alta":(minGroup>=2?"confiança média":"confiança baixa");
-  let status="NEUTRO",cls="neutral";
-  if(delta!==null && delta>=7){status="POSITIVO";cls="positive";}
-  else if(delta!==null && delta<=-7){status="NEGATIVO";cls="negative";}
+  let status="INCONCLUSIVO",cls="inconclusive";
+  if(minGroup>=2){
+    status="NEUTRO";cls="neutral";
+    if(delta!==null && delta>=7){status="POSITIVO";cls="positive";}
+    else if(delta!==null && delta<=-7){status="NEGATIVO";cls="negative";}
+  }
   const direction=delta===null?"sem diferença mensurável":`receita ${dayDiagPctText(delta)}`;
   const salesText=salesDelta===null?"":` · vendas ${dayDiagPctText(salesDelta)}`;
   return {
@@ -2182,7 +2205,7 @@ function dayDiagFactor(items,predicate,labels){
 }
 
 function dayDiagFactorCard(title,result,currentText){
-  return `<div class="day-factor"><div class="day-factor-title">${title}</div><div class="day-factor-status ${result.cls}">${result.status}</div><div class="day-factor-detail">${currentText?currentText+" · ":""}${result.detail}</div></div>`;
+  return `<div class="day-factor"><div class="day-factor-title">${title}</div><div class="day-factor-status ${result.cls}">${result.status}</div><div class="day-factor-detail">${dayDiagColorPercentages((currentText?currentText+" · ":"")+result.detail)}</div></div>`;
 }
 
 function renderDayDiagnosis(items,selected){
@@ -2207,6 +2230,7 @@ function renderDayDiagnosis(items,selected){
 
   const validItems=items.filter(x=>x.sales.exists && x.sales.liquido>0);
   const sameDateHistory=validItems.filter(x=>x.dateKey!==primary.dateKey);
+  const comparableSameDate=sameDateHistory.filter(x=>dayDiagComparable(x,primary));
   const daily=dayDiagDailySeries(selected);
   const past=daily.filter(x=>x.dateKey<selected);
   const month=selected.slice(5,7);
@@ -2215,12 +2239,13 @@ function renderDayDiagnosis(items,selected){
   const selectedHoliday=primary.holiday.isHoliday;
 
   const sameMonthPast=past.filter(x=>x.dateKey.slice(5,7)===month);
-  const sameWeekday=sameMonthPast.filter(x=>dayDiagWeekdayIndex(x.dateKey)===selectedDow);
-  const sameProfile=sameMonthPast.filter(x=>dayDiagOperationalProfile(x.dateKey)===selectedProfile);
-  const sameHoliday=sameMonthPast.filter(x=>x.holiday.isHoliday===selectedHoliday);
+  const eligiblePast=past.filter(x=>dayDiagComparable(x,primary));
+  const sameWeekday=eligiblePast.filter(x=>dayDiagWeekdayIndex(x.dateKey)===selectedDow);
+  const sameProfile=eligiblePast.filter(x=>dayDiagOperationalProfile(x.dateKey)===selectedProfile);
+  const sameHoliday=eligiblePast.filter(x=>x.holiday.isHoliday===selectedHoliday);
 
   const referenceGroups=[
-    {name:"mesma data",items:sameDateHistory,weight:.35},
+    {name:"mesma data comparável",items:comparableSameDate,weight:.35},
     {name:"mesmo dia da semana",items:sameWeekday,weight:.30},
     {name:"mesmo perfil operacional",items:sameProfile,weight:.20},
     {name:"mesmo contexto de feriado",items:sameHoliday,weight:.15}
@@ -2228,12 +2253,12 @@ function renderDayDiagnosis(items,selected){
 
   const refRevenue=dayDiagWeightedReference(referenceGroups,x=>x.sales.liquido);
   const refSales=dayDiagWeightedReference(referenceGroups,x=>x.sales.vendas);
-  const refTicket=dayDiagWeightedReference(referenceGroups,x=>x.sales.ticket);
+  const refTicket=refSales>0?refRevenue/refSales:null;
   const refSet=new Set();
   referenceGroups.forEach(g=>g.items.forEach(x=>refSet.add(x.dateKey)));
   const confidence=dayDiagConfidence(refSet.size);
 
-  baseEl.textContent=`Referência contextual: ${sameDateHistory.length} mesma data · ${sameWeekday.length} ${dayDiagWeekdayName(selected).toLowerCase()}(s) · ${sameProfile.length} ${selectedProfile} · ${sameHoliday.length} ${selectedHoliday?"feriado(s)":"dia(s) normal(is)"}`;
+  baseEl.textContent=`Referência: ${refSet.size} dia(s) comparável(is) · ${selectedProfile} · ${selectedHoliday?"feriado":"dia normal"}`;
   confEl.textContent=`Confiança: ${confidence}`;
 
   if(refRevenue===null || !refSet.size){
@@ -2252,38 +2277,39 @@ function renderDayDiagnosis(items,selected){
   badge.className=`day-diagnosis-badge ${classification.cls}`;
   badge.textContent=classification.label;
 
-  const revCls=revPct>=3?"pos":(revPct<=-3?"neg":"neu");
-  const salesCls=salesPct>=3?"pos":(salesPct<=-3?"neg":"neu");
-  const ticketCls=ticketPct>=3?"pos":(ticketPct<=-3?"neg":"neu");
-  const driver=Math.abs(Number(salesPct||0))>=Math.abs(Number(ticketPct||0))?"volume de vendas":"ticket médio";
-  summary.innerHTML=`Em <strong>${dayDateBR(primary.dateKey)}</strong>, a receita ficou <strong class="${revCls}">${dayDiagPctText(revPct)}</strong> frente à <strong>referência contextual ponderada</strong>, que considera mesma data, mesmo dia da semana, perfil ${selectedProfile} e condição de feriado. As vendas ficaram <strong class="${salesCls}">${dayDiagPctText(salesPct)}</strong> e o ticket médio <strong class="${ticketCls}">${dayDiagPctText(ticketPct)}</strong>. O principal componente da diferença foi o <strong>${driver}</strong>.`;
+  const isExceptionalMonday=selectedDow===1 && selectedHoliday;
+  const weekdayNote=isExceptionalMonday?" Segunda-feira com abertura excepcional por feriado.":"";
+  summary.innerHTML=`Receita ${dayDiagSigned(revPct)} vs. dias operacionais comparáveis; vendas ${dayDiagSigned(salesPct)}; ticket médio ${dayDiagSigned(ticketPct)}.${weekdayNote}`;
 
   // Clima: usa todas as datas comparativas para as quais já temos histórico meteorológico carregado.
-  const rainFactor=dayDiagFactor(validItems,x=>x.weather.available && ((Number(x.weather.precip)||0)>=1 || String(x.weather.label).includes("Chuva")),{
+  const weatherComparable=validItems.filter(x=>x.weather && x.weather.available && dayDiagComparable(x,primary));
+  const rainFactor=dayDiagFactor(weatherComparable,x=>((Number(x.weather.precip)||0)>=1 || String(x.weather.label).includes("Chuva")),{
     withFactor:"Datas comparáveis com chuva",withoutFactor:"datas comparáveis sem chuva",
     noSplit:"As datas comparativas ainda não formam grupos com e sem chuva suficientes para separar o efeito do clima."
   });
 
   // Evento, atração, feriado, dia da semana e perfil operacional usam todas as datas históricas do mesmo mês.
-  const contextMonth=[...sameMonthPast, daily.find(x=>x.dateKey===selected)].filter(Boolean);
-  const eventFactor=dayDiagFactor(contextMonth,x=>x.context.eventos.length>0,{
+  const contextMonth=[...eligiblePast, daily.find(x=>x.dateKey===selected)].filter(Boolean);
+  const currentOperational=selectedDow===1&&!selectedHoliday?"Fechado normalmente às segundas":(isExceptionalMonday?"Abertura excepcional no feriado":"Operação regular");
+  const historicComparable=contextMonth.filter(x=>dayDiagComparable(x,primary));
+  const eventFactor=dayDiagFactor(historicComparable,x=>x.context.eventos.length>0,{
     withFactor:"Dias com evento na cidade",withoutFactor:"dias sem evento",
     noSplit:"Não há datas suficientes com e sem evento na cidade neste período para separar esse efeito."
   });
-  const attractionFactor=dayDiagFactor(contextMonth,x=>x.context.atracoes.length>0,{
+  const attractionFactor=dayDiagFactor(historicComparable,x=>x.context.atracoes.length>0,{
     withFactor:"Dias com atração no Janela",withoutFactor:"dias sem atração",
     noSplit:"Não há datas suficientes com e sem atração no Janela neste período para separar esse efeito."
   });
-  const holidayFactor=dayDiagFactor(contextMonth,x=>x.holiday.isHoliday,{
+  const holidayFactor=dayDiagFactor(past.filter(x=>dayDiagWeekdayIndex(x.dateKey)===selectedDow),x=>x.holiday.isHoliday,{
     withFactor:"Feriados",withoutFactor:"dias normais",
     noSplit:"O período não possui amostra suficiente de feriados e dias normais para separar esse efeito."
   });
-  const weekdayFactor=dayDiagFactor(contextMonth,x=>dayDiagWeekdayIndex(x.dateKey)===selectedDow,{
+  const weekdayFactor=dayDiagFactor(past.filter(x=>x.holiday.isHoliday===selectedHoliday && dayDiagOperationalProfile(x.dateKey)!=="Seg/fechado"),x=>dayDiagWeekdayIndex(x.dateKey)===selectedDow,{
     withFactor:`Mesmo dia da semana (${dayDiagWeekdayName(selected)})`,
     withoutFactor:"outros dias da semana no mesmo mês",
     noSplit:"Não há amostra suficiente deste dia da semana e dos demais dias no mesmo período."
   });
-  const profileFactor=dayDiagFactor(contextMonth,x=>dayDiagOperationalProfile(x.dateKey)===selectedProfile,{
+  const profileFactor=dayDiagFactor(past.filter(x=>x.holiday.isHoliday===selectedHoliday && dayDiagOperationalProfile(x.dateKey)!=="Seg/fechado"),x=>dayDiagOperationalProfile(x.dateKey)===selectedProfile,{
     withFactor:`Perfil ${selectedProfile}`,
     withoutFactor:selectedProfile==="Sex/Sáb/Dom"?"perfil Seg–Qui":"perfil Sex/Sáb/Dom",
     noSplit:"Não há amostra suficiente dos dois perfis operacionais no mesmo período."
@@ -2295,7 +2321,7 @@ function renderDayDiagnosis(items,selected){
   const currentEvent=primary.context.eventos.length?`Nesta data: ${primary.context.eventos.join(" · ")}`:"Nesta data: sem evento registrado";
   const currentAttraction=primary.context.atracoes.length?`Nesta data: ${primary.context.atracoes.join(" · ")}`:"Nesta data: sem atração registrada";
   const currentHoliday=primary.holiday.isHoliday?`Nesta data: ${primary.holiday.name}`:"Nesta data: dia normal";
-  const currentWeekday=`Nesta data: ${dayDiagWeekdayName(selected)}`;
+  const currentWeekday=`Nesta data: ${dayDiagWeekdayName(selected)} · ${currentOperational}`;
   const currentProfile=`Nesta data: perfil ${selectedProfile}`;
 
   factors.innerHTML=[
@@ -2307,36 +2333,18 @@ function renderDayDiagnosis(items,selected){
     dayDiagFactorCard("Perfil operacional",profileFactor,currentProfile)
   ].join("");
 
-  const ranked=[
-    {name:"clima",...rainFactor},
-    {name:"evento na cidade",...eventFactor},
-    {name:"atração do Janela",...attractionFactor},
-    {name:"feriado",...holidayFactor},
-    {name:"dia da semana",...weekdayFactor},
-    {name:"perfil operacional",...profileFactor}
-  ].filter(x=>x.delta!==null).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
-
   const reasonList=[];
-  if(salesPct!==null && ticketPct!==null){
-    if(salesPct<=-7 && ticketPct>=3) reasonList.push(`A queda de movimento foi parcialmente compensada por ticket médio maior (${dayDiagPctText(ticketPct)}).`);
-    else if(salesPct>=7 && ticketPct>=3) reasonList.push("O resultado foi sustentado simultaneamente por maior volume de vendas e ticket médio superior.");
-    else if(salesPct<=-7 && ticketPct<=-3) reasonList.push("Volume de vendas e ticket médio pressionaram o resultado na mesma direção.");
-    else if(salesPct>=7) reasonList.push("O volume de vendas foi o principal suporte do resultado.");
-    else if(ticketPct>=7) reasonList.push("O ticket médio foi o principal suporte do resultado.");
-  }
-
   const sameDatePct=sameDateHistory.length?dayDiagPct(primary.sales.liquido,dayDiagAvg(sameDateHistory,x=>x.sales.liquido)):null;
   if(sameDatePct!==null){
-    reasonList.push(`Contra a mesma data dos anos anteriores, a receita ficou ${dayDiagPctText(sameDatePct)}; esse resultado foi combinado com os demais contextos para evitar uma comparação isolada.`);
+    reasonList.push(`Comparação anual: ${dayDiagSigned(sameDatePct)}; ${comparableSameDate.length?"há data anterior com perfil operacional equivalente":"dias da semana ou feriados diferentes limitam a comparação"}.`);
   }
+  if(primary.context.eventos.length) reasonList.push(`Evento na cidade: ${primary.context.eventos.join(" · ")} — ${eventFactor.status.toLowerCase()} na comparação histórica.`);
+  if(primary.context.atracoes.length) reasonList.push(`Atração no Janela: ${primary.context.atracoes.join(" · ")} — ${attractionFactor.status.toLowerCase()} na comparação histórica.`);
+  if(!primary.context.eventos.length&&!primary.context.atracoes.length) reasonList.push("Sem evento ou atração cadastrados nesta data.");
+  reasonList.push(`Clima: ${primary.weather.available?currentRain.replace("Nesta data: ",""):"dados indisponíveis"}; associação histórica ${rainFactor.status.toLowerCase()}.`);
+  reasonList.push("Associações não comprovam causa; sem amostra comparável suficiente, o impacto é inconclusivo.");
+  reasons.innerHTML=`<div class="day-diagnosis-reasons-title">Contexto e interpretação</div><ul>${reasonList.map(x=>`<li>${x}</li>`).join("")}</ul>`;
 
-  ranked.slice(0,3).forEach(x=>{
-    const verb=x.delta>=7?"associação positiva":(x.delta<=-7?"associação negativa":"efeito praticamente neutro");
-    reasonList.push(`O ${x.name} apresenta ${verb} dentro da amostra histórica (${dayDiagPctText(x.delta)} na receita média).`);
-  });
-  if(!ranked.length) reasonList.push("Os contextos disponíveis ainda não formam grupos suficientes para estimar impacto individual com segurança.");
-
-  reasons.innerHTML=`<div class="day-diagnosis-reasons-title">Principais razões observadas</div><ul>${reasonList.map(x=>`<li>${x}</li>`).join("")}</ul>`;
 }
 
 async function renderAnaliseDia(){
