@@ -1822,12 +1822,7 @@ function holidayInfoDayAnalysis(dateKey){
 function weatherLabelDayAnalysis(code,precip){
   const c=Number(code);
   const rainCodes=new Set([51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99]);
-  if((Number(precip)||0)>=1 || rainCodes.has(c)) return "Chuva";
-  if([0,1].includes(c)) return "Clima bom";
-  if(c===2) return "Parcialmente nublado";
-  if(c===3) return "Nublado";
-  if([45,48].includes(c)) return "Neblina";
-  return "Sem chuva relevante";
+  return ((Number(precip)||0)>=1 || rainCodes.has(c)) ? "🌧️ Chuva" : "☀️ Sem chuva";
 }
 
 function weatherDetailDayAnalysis(code){
@@ -2074,8 +2069,9 @@ async function renderAnaliseDia(){
   const cell=(v,cls="")=>`<td class="${cls}">${v}</td>`;
   const rows=[
     ["Feriado",...items.map(x=>x.holiday.isHoliday?`<span class="day-holiday-cell">${x.holiday.name}</span><div class="day-table-sub">${x.holiday.type}</div>`:"Dia normal")],
-    ["Clima",...items.map(x=>x.weather.available?`${x.weather.label}<div class="day-table-sub">${x.weather.detail}</div>`:x.weather.reason)],
-    ["Chuva",...items.map(x=>x.weather.available?`${x.weather.precip.toFixed(1)} mm`:"—")],
+    ["Clima",...items.map(x=>x.weather.available?`<strong>${x.weather.label}</strong>`:x.weather.reason)],
+    ["Condição",...items.map(x=>x.weather.available?x.weather.detail:"—")],
+    ["Precipitação",...items.map(x=>x.weather.available?`${x.weather.precip.toFixed(1)} mm`:"—")],
     ["Temperatura",...items.map(x=>x.weather.available&&Number.isFinite(x.weather.tmin)&&Number.isFinite(x.weather.tmax)?`${x.weather.tmin.toFixed(1)}° / ${x.weather.tmax.toFixed(1)}°`:"—")],
     ["Atração Janela",...items.map(x=>x.context.atracoes.join(" · ")||"—")],
     ["Evento cidade",...items.map(x=>x.context.eventos.join(" · ")||"—")],
