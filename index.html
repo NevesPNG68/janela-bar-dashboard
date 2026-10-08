@@ -1133,8 +1133,35 @@
   .day-analysis-table td{padding:.58rem .8rem;border-bottom:1px solid #1c1c28;vertical-align:top;min-width:145px}
   .day-analysis-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
   .day-analysis-chart-wrap{height:230px;position:relative}
-  @media(max-width:1000px){.day-analysis-primary{grid-template-columns:repeat(2,minmax(150px,1fr))}.day-analysis-charts{grid-template-columns:1fr}}
-  @media(max-width:620px){.day-analysis-primary{grid-template-columns:1fr}.day-analysis-status{width:100%;margin-left:0}.day-analysis-control{width:100%}.day-analysis-control input{width:100%}}
+
+  /* ── DIAGNÓSTICO AUTOMÁTICO DA OPERAÇÃO ── */
+  .day-diagnosis-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.15rem 1.2rem;margin:0 0 1rem;position:relative;overflow:hidden}
+  .day-diagnosis-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#b6ff00;box-shadow:0 0 14px rgba(182,255,0,.32)}
+  .day-diagnosis-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:.85rem}
+  .day-diagnosis-rating{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+  .day-diagnosis-badge{font-family:var(--font-head);font-size:1.12rem;letter-spacing:.05em;font-weight:950}
+  .day-diagnosis-badge.excellent,.day-diagnosis-badge.good{color:#54ff8a}
+  .day-diagnosis-badge.average{color:#f3ff00}
+  .day-diagnosis-badge.below{color:#ff9f43}
+  .day-diagnosis-badge.weak{color:#ff3344}
+  .day-diagnosis-badge.insufficient{color:#aaa8c3}
+  .day-diagnosis-confidence{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;color:#d9d6ff;border:1px solid var(--border);border-radius:999px;padding:.24rem .55rem;background:#15151d;font-weight:850}
+  .day-diagnosis-base{font-size:.72rem;color:var(--muted);text-align:right;line-height:1.4}
+  .day-diagnosis-summary{font-size:.86rem;line-height:1.55;color:#ececf8;background:#121219;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.8rem .9rem;margin-bottom:.85rem}
+  .day-diagnosis-summary strong.pos{color:#54ff8a}.day-diagnosis-summary strong.neg{color:#ff3344}.day-diagnosis-summary strong.neu{color:#f3ff00}
+  .day-diagnosis-factors{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:.7rem;margin-bottom:.85rem}
+  .day-factor{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem .8rem;min-height:112px}
+  .day-factor-title{font-size:.63rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:850;margin-bottom:.28rem}
+  .day-factor-status{font-family:var(--font-head);font-size:.98rem;font-weight:950;margin-bottom:.28rem}
+  .day-factor-status.positive{color:#54ff8a}.day-factor-status.negative{color:#ff3344}.day-factor-status.neutral{color:#f3ff00}.day-factor-status.inconclusive{color:#aaa8c3}
+  .day-factor-detail{font-size:.69rem;line-height:1.42;color:#c4c2d6}
+  .day-diagnosis-reasons{border-top:1px solid var(--border);padding-top:.75rem}
+  .day-diagnosis-reasons-title{font-size:.63rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:850;margin-bottom:.42rem}
+  .day-diagnosis-reasons ul{margin:0;padding-left:1.08rem;color:#d9d6e8;font-size:.76rem;line-height:1.55}
+  .day-diagnosis-reasons li+li{margin-top:.22rem}
+  .day-diagnosis-note{margin-top:.7rem;color:#77758f;font-size:.62rem;line-height:1.4}
+  @media(max-width:1000px){.day-diagnosis-factors{grid-template-columns:repeat(2,minmax(150px,1fr))}.day-analysis-primary{grid-template-columns:repeat(2,minmax(150px,1fr))}.day-analysis-charts{grid-template-columns:1fr}}
+  @media(max-width:620px){.day-diagnosis-factors{grid-template-columns:1fr}.day-diagnosis-base{text-align:left}.day-diagnosis-head{gap:.55rem}.day-analysis-primary{grid-template-columns:1fr}.day-analysis-status{width:100%;margin-left:0}.day-analysis-control{width:100%}.day-analysis-control input{width:100%}}
 
 </style>
 
@@ -1384,6 +1411,22 @@
       <div class="day-analysis-delta" id="day-analysis-delta"></div>
       <div class="day-analysis-table-wrap" id="day-analysis-table"></div>
     </div>
+
+    <div class="section-title">Diagn&oacute;stico da Opera&ccedil;&atilde;o <span class="tag">AUTOM&Aacute;TICO</span></div>
+    <div class="day-diagnosis-card" id="day-diagnosis-card">
+      <div class="day-diagnosis-head">
+        <div class="day-diagnosis-rating">
+          <div class="day-diagnosis-badge insufficient" id="day-diagnosis-badge">AGUARDANDO DADOS</div>
+          <div class="day-diagnosis-confidence" id="day-diagnosis-confidence">Confiança: —</div>
+        </div>
+        <div class="day-diagnosis-base" id="day-diagnosis-base">O diagnóstico será calculado com todas as datas comparativas disponíveis.</div>
+      </div>
+      <div class="day-diagnosis-summary" id="day-diagnosis-summary">Selecione uma data para gerar a leitura automática da operação.</div>
+      <div class="day-diagnosis-factors" id="day-diagnosis-factors"></div>
+      <div class="day-diagnosis-reasons" id="day-diagnosis-reasons"></div>
+      <div class="day-diagnosis-note">Leitura estatística indicativa: os fatores mostram associação com o resultado observado e não comprovam causalidade isoladamente.</div>
+    </div>
+
     <div class="day-analysis-charts">
       <div class="chart-card"><h3>Quantidade de Vendas por Data</h3><div class="day-analysis-chart-wrap"><canvas id="c-day-sales"></canvas></div></div>
       <div class="chart-card"><h3>Vendas L&iacute;quidas por Data</h3><div class="day-analysis-chart-wrap"><canvas id="c-day-revenue"></canvas></div></div>
@@ -2029,6 +2072,162 @@ function initAnaliseDia(){
   renderAnaliseDia();
 }
 
+function dayDiagAvg(arr,getter){
+  const vals=arr.map(getter).map(Number).filter(Number.isFinite);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+
+function dayDiagPct(current,reference){
+  return Number(reference)>0?((Number(current)/Number(reference))-1)*100:null;
+}
+
+function dayDiagPctText(v){
+  if(v===null || !Number.isFinite(v)) return "—";
+  return `${v>=0?"+":""}${v.toFixed(1)}%`;
+}
+
+function dayDiagConfidence(historyCount){
+  if(historyCount>=3) return "ALTA";
+  if(historyCount===2) return "MÉDIA";
+  if(historyCount===1) return "BAIXA";
+  return "INSUFICIENTE";
+}
+
+function dayDiagClassification(revenuePct){
+  if(revenuePct===null || !Number.isFinite(revenuePct)) return {label:"AMOSTRA INSUFICIENTE",cls:"insufficient"};
+  if(revenuePct>=10) return {label:"🟢 PERFORMANCE EXCELENTE",cls:"excellent"};
+  if(revenuePct>=3) return {label:"🟢 PERFORMANCE BOA",cls:"good"};
+  if(revenuePct>-3) return {label:"🟡 DENTRO DA MÉDIA",cls:"average"};
+  if(revenuePct>=-10) return {label:"🟠 ABAIXO DA MÉDIA",cls:"below"};
+  return {label:"🔴 PERFORMANCE FRACA",cls:"weak"};
+}
+
+function dayDiagFactor(items,predicate,labels){
+  const valid=items.filter(x=>x.sales.exists && x.sales.liquido>0);
+  const yes=valid.filter(predicate),no=valid.filter(x=>!predicate(x));
+  if(!yes.length || !no.length){
+    return {
+      status:"INCONCLUSIVO",cls:"inconclusive",delta:null,
+      detail:labels.noSplit || "Não há datas suficientes nos dois grupos para medir o efeito."
+    };
+  }
+  const revYes=dayDiagAvg(yes,x=>x.sales.liquido),revNo=dayDiagAvg(no,x=>x.sales.liquido);
+  const salesYes=dayDiagAvg(yes,x=>x.sales.vendas),salesNo=dayDiagAvg(no,x=>x.sales.vendas);
+  const delta=dayDiagPct(revYes,revNo),salesDelta=dayDiagPct(salesYes,salesNo);
+  const minGroup=Math.min(yes.length,no.length);
+  const conf=minGroup>=2?"confiança média":"confiança baixa";
+  let status="NEUTRO",cls="neutral";
+  if(delta!==null && delta>=7){status="POSITIVO";cls="positive";}
+  else if(delta!==null && delta<=-7){status="NEGATIVO";cls="negative";}
+  const direction=delta===null?"sem diferença mensurável":`receita ${dayDiagPctText(delta)}`;
+  const salesText=salesDelta===null?"":` · vendas ${dayDiagPctText(salesDelta)}`;
+  return {
+    status,cls,delta,salesDelta,
+    detail:`${labels.withFactor}: ${direction}${salesText} versus ${labels.withoutFactor} (${yes.length} × ${no.length} datas; ${conf}).`
+  };
+}
+
+function dayDiagFactorCard(title,result,currentText){
+  return `<div class="day-factor"><div class="day-factor-title">${title}</div><div class="day-factor-status ${result.cls}">${result.status}</div><div class="day-factor-detail">${currentText?currentText+" · ":""}${result.detail}</div></div>`;
+}
+
+function renderDayDiagnosis(items,selected){
+  const badge=document.getElementById("day-diagnosis-badge");
+  const confEl=document.getElementById("day-diagnosis-confidence");
+  const baseEl=document.getElementById("day-diagnosis-base");
+  const summary=document.getElementById("day-diagnosis-summary");
+  const factors=document.getElementById("day-diagnosis-factors");
+  const reasons=document.getElementById("day-diagnosis-reasons");
+  if(!badge||!confEl||!baseEl||!summary||!factors||!reasons) return;
+
+  const primary=items.find(x=>x.dateKey===selected)||items[items.length-1];
+  const validItems=items.filter(x=>x.sales.exists && x.sales.liquido>0);
+  const history=validItems.filter(x=>x.dateKey!==primary.dateKey);
+  const confidence=dayDiagConfidence(history.length);
+
+  baseEl.textContent=`${validItems.length} data${validItems.length===1?"":"s"} comparativa${validItems.length===1?"":"s"} lida${validItems.length===1?"":"s"} · referência: ${history.length} anterior${history.length===1?"":"es"}`;
+  confEl.textContent=`Confiança: ${confidence}`;
+
+  if(!history.length){
+    badge.className="day-diagnosis-badge insufficient";
+    badge.textContent="AMOSTRA INSUFICIENTE";
+    summary.textContent="Não há outra ocorrência histórica desta data na base para construir uma referência de performance.";
+    factors.innerHTML="";
+    reasons.innerHTML="";
+    return;
+  }
+
+  const refRevenue=dayDiagAvg(history,x=>x.sales.liquido);
+  const refSales=dayDiagAvg(history,x=>x.sales.vendas);
+  const refTicket=dayDiagAvg(history,x=>x.sales.ticket);
+  const revPct=dayDiagPct(primary.sales.liquido,refRevenue);
+  const salesPct=dayDiagPct(primary.sales.vendas,refSales);
+  const ticketPct=dayDiagPct(primary.sales.ticket,refTicket);
+  const classification=dayDiagClassification(revPct);
+  badge.className=`day-diagnosis-badge ${classification.cls}`;
+  badge.textContent=classification.label;
+
+  const revCls=revPct>=3?"pos":(revPct<=-3?"neg":"neu");
+  const salesCls=salesPct>=3?"pos":(salesPct<=-3?"neg":"neu");
+  const ticketCls=ticketPct>=3?"pos":(ticketPct<=-3?"neg":"neu");
+  const driver=Math.abs(Number(salesPct||0))>=Math.abs(Number(ticketPct||0))?"volume de vendas":"ticket médio";
+  summary.innerHTML=`Em <strong>${dayDateBR(primary.dateKey)}</strong>, a receita foi <strong class="${revCls}">${dayDiagPctText(revPct)}</strong> frente à média das ${history.length} ocorrência${history.length===1?"":"s"} anterior${history.length===1?"":"es"}. As vendas ficaram <strong class="${salesCls}">${dayDiagPctText(salesPct)}</strong> e o ticket médio <strong class="${ticketCls}">${dayDiagPctText(ticketPct)}</strong>. O principal componente da diferença foi o <strong>${driver}</strong>.`;
+
+  const rainFactor=dayDiagFactor(validItems,x=>x.weather.available && ((Number(x.weather.precip)||0)>=1 || String(x.weather.label).includes("Chuva")),{
+    withFactor:"Dias com chuva",withoutFactor:"dias sem chuva",
+    noSplit:"As datas comparativas não formam grupos com e sem chuva suficientes para separar o efeito do clima."
+  });
+  const eventFactor=dayDiagFactor(validItems,x=>x.context.eventos.length>0,{
+    withFactor:"Dias com evento na cidade",withoutFactor:"dias sem evento",
+    noSplit:"Não há datas comparativas suficientes com e sem evento na cidade para separar esse efeito."
+  });
+  const attractionFactor=dayDiagFactor(validItems,x=>x.context.atracoes.length>0,{
+    withFactor:"Dias com atração no Janela",withoutFactor:"dias sem atração",
+    noSplit:"Não há datas comparativas suficientes com e sem atração no Janela para separar esse efeito."
+  });
+  const holidayFactor=dayDiagFactor(validItems,x=>x.holiday.isHoliday,{
+    withFactor:"Feriados",withoutFactor:"dias normais",
+    noSplit:"As datas comparativas não permitem separar feriado de dia normal."
+  });
+
+  const currentRain=primary.weather.available
+    ?(((Number(primary.weather.precip)||0)>=1 || String(primary.weather.label).includes("Chuva"))?`Nesta data: chuva, ${primary.weather.precip.toFixed(1)} mm`:"Nesta data: sem chuva")
+    :"Clima histórico indisponível";
+  const currentEvent=primary.context.eventos.length?`Nesta data: ${primary.context.eventos.join(" · ")}`:"Nesta data: sem evento registrado";
+  const currentAttraction=primary.context.atracoes.length?`Nesta data: ${primary.context.atracoes.join(" · ")}`:"Nesta data: sem atração registrada";
+  const currentHoliday=primary.holiday.isHoliday?`Nesta data: ${primary.holiday.name}`:"Nesta data: dia normal";
+
+  factors.innerHTML=[
+    dayDiagFactorCard("Clima",rainFactor,currentRain),
+    dayDiagFactorCard("Evento na cidade",eventFactor,currentEvent),
+    dayDiagFactorCard("Atração Janela",attractionFactor,currentAttraction),
+    dayDiagFactorCard("Feriado",holidayFactor,currentHoliday)
+  ].join("");
+
+  const ranked=[
+    {name:"clima",...rainFactor},
+    {name:"evento na cidade",...eventFactor},
+    {name:"atração do Janela",...attractionFactor},
+    {name:"feriado",...holidayFactor}
+  ].filter(x=>x.delta!==null).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+
+  const reasonList=[];
+  if(salesPct!==null && ticketPct!==null){
+    if(salesPct<=-7 && ticketPct>=3) reasonList.push(`A queda de movimento foi parcialmente compensada por ticket médio maior (${dayDiagPctText(ticketPct)}).`);
+    else if(salesPct>=7 && ticketPct>=3) reasonList.push("O resultado foi sustentado simultaneamente por maior volume de vendas e ticket médio superior.");
+    else if(salesPct<=-7 && ticketPct<=-3) reasonList.push("Volume de vendas e ticket médio pressionaram o resultado na mesma direção.");
+    else if(salesPct>=7) reasonList.push("O volume de vendas foi o principal suporte do resultado.");
+    else if(ticketPct>=7) reasonList.push("O ticket médio foi o principal suporte do resultado.");
+  }
+  ranked.slice(0,2).forEach(x=>{
+    const verb=x.delta>=7?"associação positiva":(x.delta<=-7?"associação negativa":"efeito praticamente neutro");
+    reasonList.push(`O ${x.name} apresenta ${verb} dentro das datas comparativas (${dayDiagPctText(x.delta)} na receita média).`);
+  });
+  if(!ranked.length) reasonList.push("Os contextos disponíveis ainda não formam grupos suficientes para estimar impacto individual com segurança.");
+
+  reasons.innerHTML=`<div class="day-diagnosis-reasons-title">Principais razões observadas</div><ul>${reasonList.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+}
+
 async function renderAnaliseDia(){
   const sel=document.getElementById("day-analysis-date");
   const status=document.getElementById("day-analysis-status");
@@ -2094,6 +2293,7 @@ async function renderAnaliseDia(){
       delta.innerHTML=`Comparação com <strong>${dayDateBR(previous.dateKey)}</strong>: receita <strong class="${pct>=0?"pos":"neg"}">${pct>=0?"+":""}${pct.toFixed(1)}%</strong>${pv===null?"":` · vendas <strong class="${pv>=0?"pos":"neg"}">${pv>=0?"+":""}${pv.toFixed(1)}%</strong>`}.`;
     }else delta.textContent="Sem data anterior equivalente disponível para cálculo de variação.";
   }
+  renderDayDiagnosis(items,selected);
   renderDayComparisonCharts(items,selected);
   status.textContent=`${items.length} data${items.length===1?"":"s"} na comparação · clima exclusivamente histórico.`;
   requestAnimationFrame(()=>{applyNeonCards();resizeDashboardCharts();});
