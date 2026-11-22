@@ -1198,7 +1198,7 @@
     <p>A base será carregada pelo Dropbox automaticamente</p>
     <p>Use a seleção local apenas se o Dropbox falhar</p>
     <button class="upload-btn" onclick="document.getElementById('file-input').click()">SELECIONAR ARQUIVO</button>
-    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel()">CARREGAR DO DROPBOX</button>
+    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel(true)">CARREGAR DO DROPBOX</button>
     <p class="upload-hint" id="hosted-status">Teste Dropbox ou selecione/arraste a planilha local do computador.</p>
   </div>
   <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
@@ -1508,6 +1508,40 @@ const HOSTED_EXCEL_URLS = [
 ];
 const AUTO_LOAD_HOSTED_EXCEL = true;
 
+// ── ARQUIVO LEVE (gerado automaticamente a partir da planilha do Dropbox) ──
+// A rotina do GitHub (.github/workflows/atualizar-dados.yml) baixa a planilha,
+// extrai só o que o painel usa e publica em dados/painel.json.gz (~2 MB em vez de ~57 MB).
+// Se o arquivo leve falhar, o painel volta automaticamente a ler a planilha do Dropbox.
+const LIGHT_DATA_URL = "dados/painel.json.gz";
+
+// Faz o leitor de abas do painel entender as abas vindas do arquivo leve,
+// devolvendo exatamente as mesmas linhas que a leitura do Excel devolveria.
+(function instalarLeitorAbasLeves(){
+  if(typeof XLSX==="undefined" || !XLSX.utils) return;
+  const original = XLSX.utils.sheet_to_json;
+  XLSX.utils.sheet_to_json = function(ws, opts){
+    if(ws && ws.__leve) return decodificarAbaLeve(ws.__leve, opts||{});
+    return original.apply(this, arguments);
+  };
+})();
+
+function decodificarAbaLeve(aba, opts){
+  const vazio = Object.prototype.hasOwnProperty.call(opts,"defval") ? opts.defval : null;
+  const n = aba.n, w = aba.w, cols = aba.c, linhas = new Array(n);
+  for(let r=0;r<n;r++){
+    const linha = new Array(w);
+    for(let c=0;c<w;c++){
+      const col = cols[c];
+      let v = null;
+      if(col.t==="s"){ const k = col.i[r]; v = k<0 ? null : col.d[k]; }
+      else if(col.t==="m"){ v = col.d[r]; }
+      linha[c] = (v===null || v===undefined) ? vazio : v;
+    }
+    linhas[r] = linha;
+  }
+  return linhas;
+}
+
 let allData=[], filteredData=[], charts={};
 let matrizData=[]; // dados da aba MATRIZ ANALITICO
 let dashboardGoalsData=null; // dados da aba dados graf KPI / Dashboard
@@ -1564,20 +1598,21 @@ function setProgress(pct, step){
 // Executa fn após o browser ter pintado o frame atual
 function nextFrame(fn){ requestAnimationFrame(()=>setTimeout(fn,0)); }
 
-function load(file){
-  document.getElementById("file-name-disp").textContent = file.name;
+// load(file)                  → lê a planilha Excel (upload local ou Dropbox)
+// load(null, wbPronto, rotulo) → usa as abas já prontas do arquivo leve
+function load(file, wbPronto, rotulo){
+  document.getElementById("file-name-disp").textContent = rotulo || (file && file.name) || "";
   document.getElementById("upload-screen").style.display = "none";
   document.getElementById("loading-screen").style.display = "flex";
-  setProgress(0, "Lendo arquivo...");
+  if(!wbPronto) setProgress(0, "Lendo arquivo...");
 
-  const reader = new FileReader();
-  reader.onload = e => {
+  const iniciar = obterWb => {
     // Etapa 1: decode
     nextFrame(()=>{
-      setProgress(12, "Decodificando planilha...");
+      setProgress(wbPronto ? 26 : 12, wbPronto ? "Organizando dados..." : "Decodificando planilha...");
       nextFrame(()=>{
         let wb;
-        try{ wb = XLSX.read(e.target.result,{type:"array",dense:true,cellFormula:false,cellHTML:false,cellStyles:false,cellText:false}); }
+        try{ wb = obterWb(); }
         catch(err){ _loadErr(err); return; }
 
         const norm = s => s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"");
@@ -1730,6 +1765,10 @@ function load(file){
       });
     });
   };
+
+  if(wbPronto){ iniciar(()=>wbPronto); return; }
+  const reader = new FileReader();
+  reader.onload = e => iniciar(()=>XLSX.read(e.target.result,{type:"array",dense:true,cellFormula:false,cellHTML:false,cellStyles:false,cellText:false}));
   reader.readAsArrayBuffer(file);
 }
 
@@ -4579,13 +4618,15 @@ window.addEventListener("resize",fixMobileLandscapeAfterRotate,{passive:true});
 window.addEventListener("DOMContentLoaded",fixMobileLandscapeAfterRotate);
 
 // ── CARREGAMENTO VIA DROPBOX ──
-async function fetchArrayBufferWithProgress(url){
-  const response = await fetch(url, {cache:"no-store", mode:"cors"});
+async function fetchArrayBufferWithProgress(url, opcoes){
+  opcoes = opcoes || {};
+  const origem = opcoes.origem || "Dropbox";
+  const response = await fetch(url, {cache: opcoes.cache || "no-store", mode:"cors"});
   if(!response.ok) throw new Error("HTTP " + response.status + " ao baixar a planilha.");
 
   const total = Number(response.headers.get("content-length")) || 0;
   if(!response.body || !response.body.getReader){
-    setProgress(8, "Baixando planilha do Dropbox...");
+    setProgress(8, "Baixando " + origem + "...");
     return await response.arrayBuffer();
   }
 
@@ -4600,10 +4641,10 @@ async function fetchArrayBufferWithProgress(url){
     received += value.length;
     if(total){
       const pctDownload = Math.min(22, 2 + (received / total) * 20);
-      setProgress(pctDownload, "Baixando Dropbox: " + Math.round((received / total) * 100) + "%");
+      setProgress(pctDownload, "Baixando " + origem + ": " + Math.round((received / total) * 100) + "%");
     }else{
       const mb = (received / 1024 / 1024).toFixed(1).replace('.', ',');
-      setProgress(12, "Baixando Dropbox: " + mb + " MB");
+      setProgress(12, "Baixando " + origem + ": " + mb + " MB");
     }
     await new Promise(requestAnimationFrame);
   }
@@ -4617,7 +4658,41 @@ async function fetchArrayBufferWithProgress(url){
   return buffer.buffer;
 }
 
-async function loadHostedExcel(){
+// ── CARREGAMENTO RÁPIDO: ARQUIVO LEVE ──
+async function loadLightData(){
+  if(typeof DecompressionStream==="undefined") throw new Error("navegador sem suporte a descompactação");
+  // "no-cache": usa a cópia guardada no aparelho se o arquivo não mudou no servidor.
+  const gz = await fetchArrayBufferWithProgress(LIGHT_DATA_URL, {cache:"no-cache", origem:"dados"});
+  setProgress(23, "Descompactando dados...");
+  const fluxo = new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"));
+  const pacote = JSON.parse(await new Response(fluxo).text());
+  if(!pacote || !pacote.abas || !pacote.SheetNames) throw new Error("arquivo leve inválido");
+  const wb = {SheetNames: pacote.SheetNames, Sheets: {}};
+  for(const nome of pacote.SheetNames){
+    wb.Sheets[nome] = pacote.abas[nome] ? {__leve: pacote.abas[nome]} : {__leve: {n:0, w:0, c:[]}};
+  }
+  let rotulo = "dados automáticos";
+  if(pacote.gerado_em){
+    const d = new Date(pacote.gerado_em);
+    if(!isNaN(d)) rotulo = "atualizado " + d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+  }
+  return {wb, rotulo};
+}
+
+async function loadHostedExcel(forcarPlanilha){
+  if(!forcarPlanilha){
+    document.getElementById("upload-screen").style.display = "none";
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("loading-screen").style.display = "flex";
+    setProgress(1, "Carregando dados...");
+    try{
+      const {wb, rotulo} = await loadLightData();
+      load(null, wb, rotulo);
+      return;
+    }catch(err){
+      console.warn("Arquivo leve indisponível; lendo a planilha do Dropbox.", err);
+    }
+  }
   const status = document.getElementById("hosted-status");
   if(status) status.textContent = "Iniciando download da planilha no Dropbox...";
   document.getElementById("upload-screen").style.display = "none";
@@ -4706,7 +4781,7 @@ function setupLocalUpload(){
     document.getElementById("upload-screen").style.display = "none";
     document.getElementById("dashboard").style.display = "none";
     document.getElementById("loading-screen").style.display = "flex";
-    setProgress(3, "Conectando ao Dropbox...");
+    setProgress(3, "Carregando dados...");
     setTimeout(loadHostedExcel, 80);
   }else{
     showUploadScreen();
