@@ -1,0 +1,86 @@
+# Atualiza o arquivo leve do painel a partir da planilha do Dropbox e publica o site.
+#
+# - Roda de hora em hora, quando o código do painel muda, e manualmente
+#   (aba Actions → "Atualizar dados do painel" → Run workflow).
+# - Se a planilha não mudou desde a última publicação, não publica de novo.
+# - Requer: Settings → Pages → Source = "GitHub Actions".
+
+name: Atualizar dados do painel
+
+on:
+  schedule:
+    - cron: "17 * * * *"      # de hora em hora (minuto 17)
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  PLANILHA_URL: "https://dl.dropboxusercontent.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&dl=1"
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Baixar planilha do Dropbox
+        run: |
+          curl -fsSL --retry 3 --retry-delay 10 -o planilha.xlsm "$PLANILHA_URL"
+          TAM=$(stat -c %s planilha.xlsm)
+          echo "Tamanho: $TAM bytes"
+          # Confere se veio mesmo uma planilha (arquivo zip) e não uma página de erro.
+          head -c 2 planilha.xlsm | grep -q "PK" || { echo "Download não é uma planilha."; exit 1; }
+          [ "$TAM" -gt 1000000 ] || { echo "Planilha pequena demais, abortando."; exit 1; }
+          sha256sum planilha.xlsm | cut -d' ' -f1 > origem.sha256
+
+      - name: Verificar se a planilha mudou
+        id: mudou
+        run: |
+          ATUAL=$(cat origem.sha256)
+          PUBLICADO=$(curl -fsSL "${{ steps.pages.outputs.base_url }}/dados/origem.sha256" 2>/dev/null || echo "nenhum")
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$ATUAL" = "$PUBLICADO" ]; then
+            echo "Planilha sem alterações; nada a publicar."
+            echo "publicar=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.mudou.outputs.publicar == 'sim'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Gerar arquivo leve
+        if: steps.mudou.outputs.publicar == 'sim'
+        run: |
+          npm install --no-save --no-package-lock xlsx@0.18.5
+          mkdir -p _site/dados
+          node --max-old-space-size=6144 scripts/converter-planilha.js planilha.xlsm _site/dados/painel.json.gz
+          cp origem.sha256 _site/dados/origem.sha256
+          cp index.html _site/
+          touch _site/.nojekyll
+
+      - if: steps.mudou.outputs.publicar == 'sim'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        if: steps.mudou.outputs.publicar == 'sim'
+        uses: actions/deploy-pages@v4
