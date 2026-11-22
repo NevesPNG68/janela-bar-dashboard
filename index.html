@@ -1186,6 +1186,55 @@
 }
 </style>
 
+<script>/* tema claro é o padrão; o escuro fica salvo se o usuário escolher */(function(){var t="claro";try{t=localStorage.getItem("janela-tema")||"claro";}catch(e){}if(t!=="escuro")document.documentElement.setAttribute("data-tema","claro");})();</script>
+<style id="tema-claro">
+/* ── TEMA CLARO (o escuro continua sendo o padrão, sem alterações) ── */
+html[data-tema="claro"]{
+  --bg:#eef0f4; --surface:#ffffff; --card:#ffffff; --border:#d8dbe6;
+  --accent:#c97800; --accent2:#c2410c; --accent3:#0369a1;
+  --text:#16161f; --muted:#5a5d72; --success:#15803d;
+  color-scheme:light;
+}
+html[data-tema="claro"] body{background:var(--bg)!important;color:var(--text)!important}
+html[data-tema="claro"] *{text-shadow:none!important}
+html[data-tema="claro"] .topbar{background:rgba(255,255,255,.96)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 2px 10px rgba(20,20,40,.06)}
+html[data-tema="claro"] .kpi-card,
+html[data-tema="claro"] .chart-card,
+html[data-tema="claro"] .table-card,
+html[data-tema="claro"] .drink-summary-card,
+html[data-tema="claro"] .goal-gauge-card,
+html[data-tema="claro"] .day-analysis-metric,
+html[data-tema="claro"] .day-factor{
+  background:#ffffff!important;border-color:var(--border)!important;
+  box-shadow:0 1px 2px rgba(20,20,40,.05),0 4px 14px rgba(20,20,40,.05)!important;
+}
+html[data-tema="claro"] .fin-zone.receita{background:linear-gradient(160deg,#eefaf1 0%,#f6fcf7 100%)!important;border-color:#9fd9ad!important;box-shadow:0 4px 16px rgba(20,80,40,.07)!important}
+html[data-tema="claro"] .fin-zone.despesas{background:linear-gradient(160deg,#fdf0f0 0%,#fdf7f7 100%)!important;border-color:#efb3b3!important;box-shadow:0 4px 16px rgba(120,20,20,.07)!important}
+html[data-tema="claro"] .fin-zone::after{opacity:0!important}
+html[data-tema="claro"] .fin-kpi{background:#ffffff!important;border:1px solid var(--border)!important;box-shadow:0 1px 2px rgba(20,20,40,.05),0 3px 10px rgba(20,20,40,.05)!important}
+html[data-tema="claro"] .fin-zone.receita .fin-kpi-val{color:#13733a!important}
+html[data-tema="claro"] .fin-zone.despesas .fin-kpi-val{color:#b42323!important}
+html[data-tema="claro"] .kpi-label,html[data-tema="claro"] .fin-kpi-label,html[data-tema="claro"] .chart-card h3,
+html[data-tema="claro"] .table-header h3,html[data-tema="claro"] .drink-summary-label,html[data-tema="claro"] .audit-result-label,
+html[data-tema="claro"] .filter-group label,html[data-tema="claro"] .audit-filter label,html[data-tema="claro"] .metric-name,
+html[data-tema="claro"] .metric-pill,html[data-tema="claro"] .fin-zone-title{color:#23232f!important}
+html[data-tema="claro"] .kpi-value{color:var(--text)!important}
+html[data-tema="claro"] thead th,html[data-tema="claro"] .evo-table th,html[data-tema="claro"] .audit-analytic-table th,
+html[data-tema="claro"] .drink-table .head2 th,html[data-tema="claro"] .day-analysis-table thead th{background:#eceef4!important;color:#23232f!important;border-color:var(--border)!important}
+html[data-tema="claro"] tbody td,html[data-tema="claro"] .evo-table td,html[data-tema="claro"] .drink-table td,
+html[data-tema="claro"] .evo-table th:first-child,html[data-tema="claro"] .evo-table td:first-child,
+html[data-tema="claro"] .drink-table td.month-cell,html[data-tema="claro"] .drink-table th.month-head,
+html[data-tema="claro"] .weekly-demo-table td,html[data-tema="claro"] .weekly-demo-table td:first-child{background:#ffffff!important;color:var(--text)!important;border-color:#e6e8ef!important}
+html[data-tema="claro"] tbody tr:hover td{background:#f3f5fa!important}
+html[data-tema="claro"] .weekly-demo-table td.week-max{background:#4ade80!important;color:#05210f!important}
+html[data-tema="claro"] .weekly-demo-table td.week-min{background:#ef4444!important;color:#ffffff!important}
+html[data-tema="claro"] .weekly-demo-table td.total-cell{background:#0ea5e9!important;color:#04121c!important}
+html[data-tema="claro"] .weekly-demo-table td.week-zero{background:#f4f5f8!important;color:#8a8ca0!important}
+html[data-tema="claro"] .filter-group select,html[data-tema="claro"] input,html[data-tema="claro"] textarea{background:#ffffff!important;color:var(--text)!important;border-color:var(--border)!important}
+html[data-tema="claro"] .reload-btn{color:#3a3c4e!important;border-color:var(--border)!important;background:#fff!important}
+html[data-tema="claro"] .section-title{color:#16161f!important}
+.tema-btn{display:inline-flex;align-items:center;gap:.35rem}
+</style>
 </head>
 <body>
 
@@ -1285,6 +1334,7 @@
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem">
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
+        <button class="reload-btn tema-btn" id="tema-btn" onclick="alternarTema()" title="Mudar para tema escuro">&#9790;</button>
         <button class="reload-btn" onclick="abrirAuditoria()">&#128269; Auditoria</button>
         <button class="reload-btn" onclick="showUploadScreen()">&#8635; Trocar planilha</button>
       </div>
@@ -1690,7 +1740,9 @@ function load(file, wbPronto, rotulo){
                   const custoGeral=parseFloat(r[35])||0;
                   const cmv=parseFloat(r[36])||0;
                   const mkp=parseFloat(r[37])||0;
-                  const margem=parseFloat(r[38])||0;
+                  // MC real = (Receita − Custo Variável) ÷ Receita, com Custo Variável = Custo Geral − Total Fixo.
+                  // A coluna da planilha descontava só o CMV (1 − %CMV) e superestimava a margem.
+                  const margem=receita>0 ? (receita-(custoGeral-totalFixo))/receita : 0;
                   const pctCmv=parseFloat(r[42])||0;
                   const lucPrej=parseFloat(r[43])||0;
                   const pctLuc=parseFloat(r[44])||0;
@@ -3136,6 +3188,39 @@ function renderKPIs(){
 }
 
 // ── RESULTADOS FINANCEIROS (MATRIZ ANALITICO) ──
+// Mês em andamento: só quando 1 mês está selecionado e ele é o mês corrente.
+function finMesParcial(ano,mesesSel){
+  if(!mesesSel||mesesSel.length!==1) return null;
+  const nomes=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const p=String(mesesSel[0]||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").split("/");
+  const m=nomes.indexOf((p[0]||"").slice(0,3))+1;
+  const yy=parseInt(p[1]||ano||"0");
+  const y=isNaN(yy)?0:(yy<100?2000+yy:yy);
+  const hoje=new Date();
+  if(m!==hoje.getMonth()+1 || y!==hoje.getFullYear()) return null;
+  const diasMes=new Date(y,m,0).getDate();
+  const dias=hoje.getDate();
+  return {dias,diasMes,fator:dias/diasMes};
+}
+// Filtros que reduzem a receita mas não os custos (custos são sempre do bar inteiro).
+function finFiltrosVendasAtivos(){
+  const nomes=[];
+  const ms=[["grupo","Grupo"],["semana","Semana"],["dia","Dia da semana"],["produto","Produto"]];
+  ms.forEach(([k,n])=>{ try{ if(getMs(k).length) nomes.push(n); }catch(e){} });
+  if(document.getElementById("f-tipo")?.value) nomes.push("Canal");
+  if(document.getElementById("f-pgto")?.value) nomes.push("Pagamento");
+  return nomes;
+}
+function finAvisoHtml(parcial,filtros){
+  let h="";
+  if(filtros&&filtros.length){
+    h+=`<div style="grid-column:1/-1;font-size:.72rem;line-height:1.4;padding:.55rem .8rem;border-radius:8px;background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.4);color:#fca5a5">&#9888; Filtro ativo (${filtros.join(", ")}): a receita está filtrada, mas custos, lucro e ponto de equilíbrio são do bar inteiro. Indicadores financeiros válidos só sem esses filtros.</div>`;
+  }
+  if(parcial){
+    h+=`<div style="grid-column:1/-1;font-size:.72rem;line-height:1.4;padding:.55rem .8rem;border-radius:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);color:#fbbf24">&#9203; Mês em andamento (${parcial.dias} de ${parcial.diasMes} dias): custos e CMV podem estar incompletos; lucro e ponto de equilíbrio tendem a parecer melhores do que serão no fechamento.</div>`;
+  }
+  return h;
+}
 function renderFinanceiro(){
   const finReceita=document.getElementById("fin-receita");
   const finDespesas=document.getElementById("fin-despesas");
@@ -3164,6 +3249,11 @@ function renderFinanceiro(){
     finDespesas.innerHTML="";
     return;
   }
+
+  // Avisos de leitura
+  const infoParcial=finMesParcial(ano,mesesSel);
+  const filtrosVendas=finFiltrosVendasAtivos();
+  const avisoFin=finAvisoHtml(infoParcial,filtrosVendas);
 
   // Agrega
   const sum=(key)=>rows.reduce((s,r)=>s+(r[key]||0),0);
@@ -3195,8 +3285,8 @@ function renderFinanceiro(){
   }
 
   // RECEITA cards
-  finReceita.innerHTML=
-    card("Receita Total (Líquida)","R$ "+receita.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0}),"soma dos itens — col V (VendasOperador)","&#128200;") +
+  finReceita.innerHTML=avisoFin+
+    card("Receita Total (Líquida)","R$ "+receita.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0}),"soma dos itens vendidos","&#128200;") +
     (()=>{
       // Lucro card com barra visual
       const isLuc=lucro>=0;
@@ -3226,14 +3316,14 @@ function renderFinanceiro(){
       return card("Receita / Dia Operação",recPorDia>0?RK(recPorDia):"—","~"+diasOp+" dias de operação no período","&#128197;");
     })() +
     (()=>{
-      // Cobertura do Custo Fixo: quanto da receita já cobriu os custos fixos
-      const cob=totalFixo>0?Math.min(receita/totalFixo,9.99):0;
-      const cobPct=totalFixo>0?(receita/totalFixo*100).toFixed(1)+"%":"—";
-      const cobOk=receita>=totalFixo;
+      // Cobertura do Custo Fixo: margem de contribuição em R$ ÷ custo fixo total
+      const mcValor=receita*margemMedia;
+      const cobPct=totalFixo>0?(mcValor/totalFixo*100).toFixed(1)+"%":"—";
+      const cobOk=mcValor>=totalFixo;
       return `<div class="fin-kpi">
         <div class="fin-kpi-label">Cobertura Custo Fixo</div>
         <div class="fin-kpi-val" style="color:${cobOk?"#86efac":"#fbbf24"}">${cobPct}</div>
-        <div class="fin-kpi-sub">${cobOk?"&#9989; Custo fixo coberto":"&#9888; "+RK(totalFixo-receita)+" descobertos"}</div>
+        <div class="fin-kpi-sub">${cobOk?"&#9989; Custo fixo coberto":"&#9888; "+RK(totalFixo-mcValor)+" descobertos"} — margem de contribuição ÷ custo fixo</div>
         <div class="fin-kpi-icon">&#127968;</div></div>`;
     })() +
     (()=>{
@@ -3295,7 +3385,7 @@ function renderFinanceiro(){
     const mediaCustoVariavel = n > 0 ? custoVariavel / n : 0;
     const mediaLucro         = n > 0 ? rows.reduce((s,r)=>s+r.lucPrej,0) / n : 0;
     const mediaCmv           = n > 0 ? cmv / n : 0;
-    const mediaLucPct        = pctLucMedio;
+    const mediaLucPct        = totalRec > 0 ? lucro / totalRec : pctLucMedio; // mesma base do histórico
     const mediaCmvPct        = pctCmvMedio;
     const mediaMKP           = mkpMedio;
     const mediaMargem        = margemMedia;
@@ -3365,7 +3455,7 @@ function renderFinanceiro(){
     const hMKP           = hRecTotal > 0 ? histRows.reduce((s,r)=>s+(r.mkp*r.receita),0) / hRecTotal : 0;
     const hMargem        = hRecTotal > 0 ? histRows.reduce((s,r)=>s+(r.margem*r.receita),0) / hRecTotal : 0;
     // Receita histórica média pela Matriz (para comparar mesma base)
-    const hReceitaMedia  = hn > 0 ? hSum("receita") / hn : 0;
+    const hReceitaMedia  = hn > 0 ? (hSum("receita") / hn) * (infoParcial ? infoParcial.fator : 1) : 0;
 
     // Função de comparativo: seta + % diferença vs histórico
     // "melhor" = maior é melhor para receita/lucro/mkp/margem; menor é melhor para custos/cmv
@@ -3374,7 +3464,7 @@ function renderFinanceiro(){
       const pct = ((atual - hist) / Math.abs(hist)) * 100;
       if(Math.abs(pct) < 0.5) return '<span style="font-size:.6rem;color:var(--muted);margin-left:3px">≈ igual</span>';
       const subiu = pct > 0;
-      const cor = subiu ? "#4ade80" : "#f87171";
+      const cor = (subiu === maiorEMelhor) ? "#4ade80" : "#f87171";
       const seta = subiu ? "▲" : "▼";
       return `<span style="font-size:.62rem;color:${cor};margin-left:3px;font-weight:700">${seta}${Math.abs(pct).toFixed(1)}%</span>`;
     }
@@ -3406,7 +3496,8 @@ function renderFinanceiro(){
           '<span style="font-family:var(--font-head);font-size:.85rem;letter-spacing:.1em;color:#ffffff">&#9656; MÉDIA DA SÉRIE</span>' +
           '<span style="font-size:.65rem;background:#26263a;color:#ffffff;padding:2px 8px;border-radius:20px;letter-spacing:.06em;font-weight:950">'+serieLabel+'</span>' +
           (mostrarComparativo
-            ? '<span style="font-size:.62rem;background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.25);padding:2px 8px;border-radius:20px;letter-spacing:.04em;font-weight:600">&#128200; vs meses anteriores '+anoSel+'</span>'
+            ? '<span style="font-size:.62rem;background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.25);padding:2px 8px;border-radius:20px;letter-spacing:.04em;font-weight:600">&#128200; vs meses anteriores '+anoSel+'</span>' +
+              (infoParcial ? '<span style="font-size:.62rem;background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.3);padding:2px 8px;border-radius:20px;letter-spacing:.04em;font-weight:600">&#9203; receita histórica proporcional a '+infoParcial.dias+' de '+infoParcial.diasMes+' dias</span>' : '')
             : '') +
         '</div>' +
 
@@ -3462,7 +3553,7 @@ function renderFinanceiro(){
     return `<div class="fin-kpi">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
         <div class="fin-kpi-label" style="margin-bottom:0">${label}</div>
-        <span style="font-size:.62rem;background:${cor}22;color:${cor};border:1px solid ${cor}55;padding:2px 7px;border-radius:20px;font-weight:700;letter-spacing:.04em;white-space:nowrap">${pctFmt} do total</span>
+        <span style="font-size:.62rem;background:${cor}22;color:${cor};border:1px solid ${cor}55;padding:2px 7px;border-radius:20px;font-weight:700;letter-spacing:.04em;white-space:nowrap">${pctFmt} do custo</span>
       </div>
       <div class="fin-kpi-val">${val}</div>
       <div style="margin:.45rem 0 .3rem">
@@ -3477,23 +3568,23 @@ function renderFinanceiro(){
 
   // DESPESAS cards
   finDespesas.innerHTML=
-    cardPct("Custo Fixo",      RK(custoFixo),    "col AE — fixo puro",       "&#127968;", custoFixo,    custoGeral, "#f5a623") +
-    cardPct("Fixo / Variável", RK(custoFixoVar),  "col AF — fixo/variável",   "&#9878;",   custoFixoVar, custoGeral, "#a78bfa") +
-    cardPct("Total Fixo",      RK(totalFixo),     "col AG — fixo+misto",      "&#128203;", totalFixo,    custoGeral, "#00cfff") +
-    cardPct("Custo Variável",  RK(custoVariavel), "AJ − AG — variável puro",  "&#128260;", custoVariavel,custoGeral, "#f87171") +
-    card("Custo Geral",RK(custoGeral),"col AJ — total geral","&#128181;") +
-    card("CMV",RK(cmv),"col AK — custo merc. vendida","&#128722;") +
+    cardPct("Custo Fixo",      RK(custoFixo),    "fixo puro",       "&#127968;", custoFixo,    custoGeral, "#f5a623") +
+    cardPct("Fixo / Variável", RK(custoFixoVar),  "fixo/variável (misto)",   "&#9878;",   custoFixoVar, custoGeral, "#a78bfa") +
+    cardPct("Total Fixo",      RK(totalFixo),     "fixo + misto",      "&#128203;", totalFixo,    custoGeral, "#00cfff") +
+    cardPct("Custo Variável",  RK(custoVariavel), "variável puro",  "&#128260;", custoVariavel,custoGeral, "#f87171") +
+    card("Custo Geral",RK(custoGeral),"total geral","&#128181;") +
+    card("CMV",RK(cmv),"custo da mercadoria vendida","&#128722;") +
     (()=>{
       const mkpFmt=mkpMedio>0?"×"+mkpMedio.toFixed(2):"—";
-      return card("MKP",mkpFmt,"col AL — markup médio","&#128200;");
+      return card("MKP",mkpFmt,"markup médio","&#128200;");
     })() +
     (()=>{
       const mFmt=margemMedia>0?Pct(margemMedia):"—";
-      return card("Margem Contrib.",mFmt,"col AM — M. Contribuição","&#9989;");
+      return card("Margem Contrib.",mFmt,"(receita − custo variável) ÷ receita","&#9989;");
     })() +
     (()=>{
       const pFmt=pctCmvMedio>0?Pct(pctCmvMedio):"—";
-      return card("% CMV",pFmt,"col AQ — % custo/receita","&#128202;");
+      return card("% CMV",pFmt,"CMV ÷ receita","&#128202;");
     })() +
     (()=>{
       // Card especial PE com barra de progresso
@@ -3515,7 +3606,7 @@ function renderFinanceiro(){
           <div>
             <div class="fin-kpi-label">&#9878; Ponto de Equil&iacute;brio Cont&aacute;bil</div>
             <div class="fin-kpi-val" style="color:${barColor};font-size:2rem">${RK(pe)}</div>
-            <div class="fin-kpi-sub">Total Fixo &divide; Margem de Contribui&ccedil;&atilde;o (AG &divide; AM)</div>
+            <div class="fin-kpi-sub">Total Fixo &divide; Margem de Contribui&ccedil;&atilde;o (%)</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.3rem">Cobertura pela Receita</div>
@@ -3537,6 +3628,7 @@ function renderFinanceiro(){
             <span style="font-size:.68rem;color:var(--muted)">&#128308; Receita: <b style="color:var(--text)">${RK(receita)}</b></span>
             <span style="font-size:.68rem;color:var(--muted)">&#128994; PE: <b style="color:${barColor}">${RK(pe)}</b></span>
             ${pe>0?`<span style="font-size:.68rem;color:var(--muted)">Margem Contrib. usada: <b style="color:var(--text)">${Pct(margemMedia)}</b></span>`:""}
+            ${infoParcial?`<span style="font-size:.68rem;color:#fbbf24">&#9203; Mês em andamento: custos ainda podem não estar todos lançados</span>`:""}
           </div>
         </div>
       </div>`;
@@ -5273,8 +5365,8 @@ function setupLocalUpload(){
     const lucroCor=lucro>=0?"#86efac":"#f87171";
     const peCor=peAtingido?"#86efac":"#fbbf24";
 
-    finReceita.innerHTML=
-      card("Receita Total (Líquida)",R(receita),"col V — VendasOperador","&#128200;","#86efac")+
+    finReceita.innerHTML=finAvisoHtml(finMesParcial(document.getElementById("f-ano")?.value||"",getMs("mes")),finFiltrosVendasAtivos())+
+      card("Receita Total (Líquida)",R(receita),"soma dos itens vendidos","&#128200;","#86efac")+
       card(lucro>=0?"Lucro":"Prejuízo",R(lucro),pct(pctLuc)+" sobre receita","&#127919;",lucroCor)+
       card("Receita / Dia",recPorDia>0?RK(recPorDia):"—","~"+s.diasOp+" dias de operação","&#128197;","#00e5ff")+
       card("Mix Drinks",mix.toFixed(1)+"%",R(s.dLiq)+" em drinks","&#127864;","#ff2d95");
@@ -5365,6 +5457,153 @@ function setupLocalUpload(){
 
 window.addEventListener("DOMContentLoaded", setupLocalUpload);
 
+</script>
+
+<script>
+/* ── TEMA CLARO: ajuste automático das cores fixas que não usam variáveis ──
+   No tema claro, textos muito claros são escurecidos (mantendo o tom), fundos e bordas escuros
+   viram claros e os gráficos recebem eixos/legendas escuros. No escuro nada é alterado. */
+(function(){
+  const ehClaro=()=>document.documentElement.getAttribute("data-tema")==="claro";
+  const alterados=[]; // [el, prop, valorAnterior, prioridadeAnterior]
+  let aplicando=false, agendado=null;
+
+  function parseCor(str){
+    const m=String(str||"").match(/rgba?\(([^)]+)\)/); if(!m) return null;
+    const p=m[1].split(/[\s,\/]+/).filter(Boolean).map(Number);
+    return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1};
+  }
+  function lum({r,g,b}){
+    const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+    return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b);
+  }
+  function hsl({r,g,b}){
+    r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0;const l=(mx+mn)/2;
+    if(mx!==mn){const d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+      h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;}
+    return {h,s,l};
+  }
+  const cssHsl=(h,s,l,a)=>`hsla(${h.toFixed(0)},${(s*100).toFixed(0)}%,${(l*100).toFixed(0)}%,${a==null?1:a})`;
+  function definir(el,prop,val){
+    alterados.push([el,prop,el.style.getPropertyValue(prop),el.style.getPropertyPriority(prop)]);
+    el.style.setProperty(prop,val,"important");
+  }
+  function fundoEfetivo(el){
+    for(let e=el;e&&e!==document.documentElement;e=e.parentElement){
+      const c=parseCor(getComputedStyle(e).backgroundColor);
+      if(c&&c.a>0.5) return c;
+    }
+    return {r:238,g:240,b:244,a:1};
+  }
+  function textoEscuro(c){
+    const {h,s}=hsl(c);
+    if(s<0.18) return "#1c1c27";
+    return cssHsl(h,Math.min(s,0.85),0.30,c.a);
+  }
+  function fundoClaro(c){
+    const {h,s}=hsl(c);
+    if(s<0.12) return c.a>=0.9?"#ffffff":`rgba(255,255,255,${Math.max(c.a,0.7)})`;
+    return cssHsl(h,Math.min(s,0.55),0.965,Math.max(c.a,0.85));
+  }
+  function ajustar(el){
+    if(el.closest&&el.closest("svg")) return;
+    const cs=getComputedStyle(el);
+    // fundo sólido escuro
+    const bg=parseCor(cs.backgroundColor);
+    if(bg&&bg.a>0.08&&lum(bg)<0.06) definir(el,"background-color",fundoClaro(bg));
+    // fundo em degradê escuro
+    const bi=cs.backgroundImage;
+    if(bi&&bi.includes("gradient")){
+      const cores=[...bi.matchAll(/rgba?\([^)]+\)/g)].map(m=>parseCor(m[0])).filter(c=>c&&c.a>0.35);
+      if(cores.length&&cores.every(c=>lum(c)<0.06)){
+        definir(el,"background-image","none");
+        definir(el,"background-color",fundoClaro(cores[0]));
+      }
+    }
+    // bordas escuras
+    ["top","right","bottom","left"].forEach(lado=>{
+      const w=parseFloat(cs.getPropertyValue(`border-${lado}-width`))||0; if(!w) return;
+      const c=parseCor(cs.getPropertyValue(`border-${lado}-color`));
+      if(c&&c.a>0.2&&lum(c)<0.05) definir(el,`border-${lado}-color`,"#dfe1ea");
+    });
+    // texto claro demais para fundo claro
+    if(el.childNodes.length){
+      const tc=parseCor(cs.color);
+      if(tc&&tc.a>0.2&&lum(tc)>0.3){
+        const f=fundoEfetivo(el);
+        if(lum(f)>0.45) definir(el,"color",textoEscuro(tc));
+      }
+    }
+  }
+  function passar(raiz){
+    if(!ehClaro()) return;
+    aplicando=true;
+    try{
+      const lista=raiz===document.body?document.body.querySelectorAll("*"):[raiz,...raiz.querySelectorAll("*")];
+      for(const el of lista){ if(el.nodeType===1&&el.tagName!=="CANVAS"&&el.tagName!=="SCRIPT"&&el.tagName!=="STYLE") ajustar(el); }
+    }finally{ obs.takeRecords(); aplicando=false; }
+  }
+  function restaurar(){
+    aplicando=true;
+    for(let i=alterados.length-1;i>=0;i--){
+      const [el,prop,val,pri]=alterados[i];
+      if(val) el.style.setProperty(prop,val,pri); else el.style.removeProperty(prop);
+    }
+    alterados.length=0; obs.takeRecords(); aplicando=false;
+  }
+  const pendentes=new Set();
+  const obs=new MutationObserver(recs=>{
+    if(aplicando||!ehClaro()) return;
+    recs.forEach(r=>{ if(r.type==="childList") r.addedNodes.forEach(n=>{if(n.nodeType===1)pendentes.add(n);}); else if(r.target.nodeType===1) pendentes.add(r.target); });
+    if(agendado) return;
+    agendado=setTimeout(()=>{ agendado=null; const ns=[...pendentes]; pendentes.clear(); ns.forEach(n=>{ if(n.isConnected) passar(n); }); },60);
+  });
+  function iniciarObs(){ obs.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["style","class"]}); }
+
+  // Gráficos: eixos, grades e legendas legíveis no fundo claro
+  const COR_TXT="#3a3c4e", COR_GRADE="rgba(20,20,40,.09)";
+  function temaGrafico(chart){
+    const o=chart.options; if(!o) return;
+    if(!chart.$temaOrig){
+      const orig={scales:{},legend:o.plugins&&o.plugins.legend&&o.plugins.legend.labels?o.plugins.legend.labels.color:undefined,
+        title:o.plugins&&o.plugins.title?o.plugins.title.color:undefined};
+      Object.entries(o.scales||{}).forEach(([k,sc])=>{orig.scales[k]={t:sc.ticks&&sc.ticks.color,g:sc.grid&&sc.grid.color,ti:sc.title&&sc.title.color};});
+      chart.$temaOrig=orig;
+    }
+    const orig=chart.$temaOrig, claro=ehClaro();
+    Object.entries(o.scales||{}).forEach(([k,sc])=>{
+      const og=orig.scales[k]||{};
+      if(sc.ticks) sc.ticks.color=claro?COR_TXT:og.t;
+      if(sc.grid) sc.grid.color=claro?COR_GRADE:og.g;
+      if(sc.title) sc.title.color=claro?COR_TXT:og.ti;
+    });
+    if(o.plugins&&o.plugins.legend&&o.plugins.legend.labels) o.plugins.legend.labels.color=claro?COR_TXT:orig.legend;
+    if(o.plugins&&o.plugins.title) o.plugins.title.color=claro?COR_TXT:orig.title;
+  }
+  function registrarPlugin(){
+    if(!window.Chart||window.__temaPlugin) return;
+    window.__temaPlugin=true;
+    Chart.register({id:"temaJanela",beforeUpdate:temaGrafico});
+  }
+  function atualizarGraficos(){
+    if(!window.Chart||!Chart.instances) return;
+    Object.values(Chart.instances).forEach(c=>{ try{ c.update("none"); }catch(e){} });
+  }
+  function rotuloBotao(){
+    const b=document.getElementById("tema-btn"); if(!b) return;
+    b.innerHTML=ehClaro()?"&#9790;":"&#9728;"; b.title=ehClaro()?"Mudar para tema escuro":"Mudar para tema claro";
+  }
+  window.alternarTema=function(){
+    const claro=!ehClaro();
+    if(claro) document.documentElement.setAttribute("data-tema","claro");
+    else document.documentElement.removeAttribute("data-tema");
+    try{ localStorage.setItem("janela-tema",claro?"claro":"escuro"); }catch(e){}
+    if(claro) passar(document.body); else restaurar();
+    atualizarGraficos(); rotuloBotao();
+  };
+  registrarPlugin(); iniciarObs(); rotuloBotao();
+  if(ehClaro()) passar(document.body);
+})();
 </script>
 </body>
 </html>
