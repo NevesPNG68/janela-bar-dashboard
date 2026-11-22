@@ -4,6 +4,9 @@
 #   (aba Actions → "Atualizar dados do painel" → Run workflow).
 # - Se a planilha não mudou desde a última publicação, não publica de novo.
 # - Requer: Settings → Pages → Source = "GitHub Actions".
+# - Proteção: a cada execução agendada, a rotina reativa a si mesma pela API do GitHub,
+#   o que zera o contador de 60 dias sem atividade (o GitHub desliga rotinas agendadas
+#   de repositórios públicos parados há 60 dias).
 
 name: Atualizar dados do painel
 
@@ -16,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
   pages: write
   id-token: write
 
@@ -34,6 +38,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      - name: Manter rotina ativa (evita desligamento após 60 dias)
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/atualizar-dados.yml/enable"
+
       - uses: actions/checkout@v4
 
       - id: pages
