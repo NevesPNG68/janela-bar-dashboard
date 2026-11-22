@@ -3673,15 +3673,17 @@ function renderDrinkVendasTicket(){
   const monthSerial=s=>{const p=parseMes(s);return p?p.serial:-Infinity;};
 
   // Mantém os filtros operacionais, mas ignora o filtro de mês/ano para formar a série histórica.
-  const passOtherFilters=d=>{
-    const v=id=>document.getElementById(id)?.value||"";
-    return (getMs("semana").length===0 || getMs("semana").includes(String(Math.round(d.semana)))) &&
-      (getMs("grupo").length===0 || getMs("grupo").includes(d.grupo)) &&
-      (!v("f-tipo") || d.tipo===v("f-tipo")) &&
-      (!v("f-pgto") || d.pgto===v("f-pgto")) &&
-      (getMs("dia").length===0 || getMs("dia").includes(d.dia)) &&
-      (getMs("produto").length===0 || getMs("produto").includes(d.produto));
-  };
+  // Lê os filtros da tela UMA vez (antes lia a cada linha: ~2 milhões de leituras, ~3 s no celular).
+  const fSemana=new Set(getMs("semana")), fGrupo=new Set(getMs("grupo")),
+        fDia=new Set(getMs("dia")), fProduto=new Set(getMs("produto"));
+  const fTipo=document.getElementById("f-tipo")?.value||"", fPgto=document.getElementById("f-pgto")?.value||"";
+  const passOtherFilters=d=>
+      (fSemana.size===0 || fSemana.has(String(Math.round(d.semana)))) &&
+      (fGrupo.size===0 || fGrupo.has(d.grupo)) &&
+      (!fTipo || d.tipo===fTipo) &&
+      (!fPgto || d.pgto===fPgto) &&
+      (fDia.size===0 || fDia.has(d.dia)) &&
+      (fProduto.size===0 || fProduto.has(d.produto));
   const agg={};
   allData.forEach(d=>{
     if(!passOtherFilters(d)) return;
@@ -5016,7 +5018,7 @@ function setupLocalUpload(){
       .filter(j => mobileJobToken[j.key] !== token)
       .filter(j => force || isNearViewport(j.target, margin))
       .map(j => function mobileLazyJob(){
-        if(token!==renderToken) return;
+        if(token!==renderToken || mobileJobToken[j.key]===token) return; // já desenhado por outra fila
         j.fn();
         mobileJobToken[j.key]=token;
       });
@@ -5095,6 +5097,12 @@ function setupLocalUpload(){
   window.addEventListener('scroll', onMobileScrollOrResize, {passive:true});
   window.addEventListener('resize', onMobileScrollOrResize, {passive:true});
   window.addEventListener('orientationchange', ()=>setTimeout(onMobileScrollOrResize, 360), {passive:true});
+
+  // Desenha em segundo plano, um por vez, os gráficos/tabelas ainda não atualizados
+  // (usado após o carregamento/filtro para que já estejam prontos ao rolar a tela).
+  window.renderizarRestanteMobile = function(token){
+    if(token===renderToken) renderVisibleMobileJobs(token, true);
+  };
 
   // Botão opcional para quem quiser atualizar todos os gráficos/tabelas de uma vez no mobile.
   window.atualizarTudoMobile = function(){
@@ -5333,8 +5341,10 @@ function setupLocalUpload(){
         if(token!==renderToken) return;
         requestAnimationFrame(applyNeonCards);
         if(typeof done==='function') done();
-        // Dispara atualização só do bloco que estiver visível no momento.
+        // Dispara primeiro o bloco que estiver visível no momento...
         setTimeout(()=>{ if(token===renderToken) window.dispatchEvent(new Event('scroll')); }, 260);
+        // ...e depois desenha o restante em segundo plano, para estar pronto ao rolar a tela.
+        setTimeout(()=>{ if(token===renderToken && window.renderizarRestanteMobile) window.renderizarRestanteMobile(token); }, 1200);
       }, 12);
     }else{
       const allJobs=[
