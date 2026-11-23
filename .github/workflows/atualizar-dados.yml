@@ -1,18 +1,21 @@
-# Atualiza o arquivo leve do painel a partir da planilha do Dropbox e publica o site.
+# Atualiza a cópia rápida do painel a partir da planilha do Dropbox e publica o site.
 #
-# - Roda de hora em hora, quando o código do painel muda, e manualmente
-#   (aba Actions → "Atualizar dados do painel" → Run workflow).
-# - Se a planilha não mudou desde a última publicação, não publica de novo.
+# Como funciona (sem ninguém precisar rodar nada):
+# - A cada 10 minutos, a etapa "conferir" baixa SÓ os últimos 64 KB da planilha
+#   (o índice do arquivo .xlsm, que muda sempre que a planilha é salva) e compara
+#   com a impressão digital da última publicação. Leva segundos.
+# - Só se a planilha mudou, a etapa "publicar" baixa a planilha inteira, monta a
+#   cópia rápida e publica o site. Na prática: uma montagem por atualização.
+# - Também publica quando o código do painel muda (push) ou quando rodada à mão.
 # - Requer: Settings → Pages → Source = "GitHub Actions".
 # - Proteção: a cada execução agendada, a rotina reativa a si mesma pela API do GitHub,
-#   o que zera o contador de 60 dias sem atividade (o GitHub desliga rotinas agendadas
-#   de repositórios públicos parados há 60 dias).
+#   o que zera o contador de 60 dias sem atividade.
 
 name: Atualizar dados do painel
 
 on:
   schedule:
-    - cron: "17 * * * *"      # de hora em hora (minuto 17)
+    - cron: "4,14,24,34,44,54 * * * *"   # confere a cada 10 minutos
   push:
     branches: [main]
   workflow_dispatch:
@@ -23,20 +26,17 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 env:
   PLANILHA_URL: "https://dl.dropboxusercontent.com/scl/fi/xv93qy8t293au22unojov/Por-venda_2026.xlsm?rlkey=gtyk5at1kta87k5rlioktgwxb&dl=1"
+  SITE_URL: "https://nevespng68.github.io/janela-bar-dashboard"
 
 jobs:
-  publicar:
+  conferir:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    timeout-minutes: 5
+    outputs:
+      publicar: ${{ steps.mudou.outputs.publicar }}
+      indice: ${{ steps.mudou.outputs.indice }}
     steps:
       - name: Manter rotina ativa (evita desligamento após 60 dias)
         if: github.event_name == 'schedule'
@@ -45,10 +45,46 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/atualizar-dados.yml/enable"
 
+      - name: Conferir se a planilha mudou (só os últimos 64 KB)
+        id: mudou
+        run: |
+          INDICE=""
+          for i in 1 2 3; do
+            CODIGO=$(curl -sSL -r -65536 -o fim.bin -w "%{http_code}" "$PLANILHA_URL" || echo "000")
+            if [ "$CODIGO" = "206" ]; then INDICE=$(sha256sum fim.bin | cut -d' ' -f1); break; fi
+            echo "Tentativa $i: Dropbox respondeu $CODIGO"; sleep 10
+          done
+          PUBLICADO=$(curl -fsSL "$SITE_URL/dados/indice.txt?t=$(date +%s)" 2>/dev/null | tr -d '[:space:]' || true)
+          echo "Planilha: ${INDICE:-desconhecido} | Publicado: ${PUBLICADO:-nenhum}"
+          echo "indice=$INDICE" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "publicar=sim" >> "$GITHUB_OUTPUT"
+          elif [ -z "$INDICE" ]; then
+            echo "Não foi possível conferir agora; tenta de novo em 10 minutos."
+            echo "publicar=nao" >> "$GITHUB_OUTPUT"
+          elif [ "$INDICE" = "$PUBLICADO" ]; then
+            echo "Planilha sem alterações; nada a fazer."
+            echo "publicar=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "Planilha mudou; montando a cópia rápida."
+            echo "publicar=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+  publicar:
+    needs: conferir
+    if: needs.conferir.outputs.publicar == 'sim'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - uses: actions/checkout@v4
 
-      - id: pages
-        uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v5
 
       - name: Baixar planilha do Dropbox
         run: |
@@ -59,39 +95,26 @@ jobs:
           head -c 2 planilha.xlsm | grep -q "PK" || { echo "Download não é uma planilha."; exit 1; }
           [ "$TAM" -gt 1000000 ] || { echo "Planilha pequena demais, abortando."; exit 1; }
           sha256sum planilha.xlsm | cut -d' ' -f1 > origem.sha256
+          # Impressão digital dos últimos 64 KB do arquivo baixado (mesma conta que o painel faz).
+          tail -c 65536 planilha.xlsm | sha256sum | cut -d' ' -f1 > indice.txt
+          echo "Índice: $(cat indice.txt)"
 
-      - name: Verificar se a planilha mudou
-        id: mudou
-        run: |
-          ATUAL=$(cat origem.sha256)
-          PUBLICADO=$(curl -fsSL "${{ steps.pages.outputs.base_url }}/dados/origem.sha256" 2>/dev/null || echo "nenhum")
-          if [ "${{ github.event_name }}" = "schedule" ] && [ "$ATUAL" = "$PUBLICADO" ]; then
-            echo "Planilha sem alterações; nada a publicar."
-            echo "publicar=nao" >> "$GITHUB_OUTPUT"
-          else
-            echo "publicar=sim" >> "$GITHUB_OUTPUT"
-          fi
-
-      - if: steps.mudou.outputs.publicar == 'sim'
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Gerar arquivo leve
-        if: steps.mudou.outputs.publicar == 'sim'
         run: |
           npm install --no-save --no-package-lock xlsx@0.18.5
           mkdir -p _site/dados
           node --max-old-space-size=6144 scripts/converter-planilha.js planilha.xlsm _site/dados/painel.json.gz
-          cp origem.sha256 _site/dados/origem.sha256
+          cp origem.sha256 indice.txt _site/dados/
           cp index.html _site/
           touch _site/.nojekyll
 
-      - if: steps.mudou.outputs.publicar == 'sim'
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - id: deploy
-        if: steps.mudou.outputs.publicar == 'sim'
         uses: actions/deploy-pages@v4
