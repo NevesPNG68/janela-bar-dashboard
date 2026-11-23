@@ -1255,7 +1255,7 @@ html[data-tema="claro"] .section-title{color:#16161f!important}
     <p>A base será carregada pelo Dropbox automaticamente</p>
     <p>Use a seleção local apenas se o Dropbox falhar</p>
     <button class="upload-btn" onclick="document.getElementById('file-input').click()">SELECIONAR ARQUIVO</button>
-    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel(true)">CARREGAR DO DROPBOX</button>
+    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel()">CARREGAR DO DROPBOX</button>
     <p class="upload-hint" id="hosted-status">Teste Dropbox ou selecione/arraste a planilha local do computador.</p>
   </div>
   <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
@@ -1344,7 +1344,8 @@ html[data-tema="claro"] .section-title{color:#16161f!important}
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
         <button class="reload-btn tema-btn" id="tema-btn" onclick="alternarTema()" title="Mudar para tema escuro">&#9790;</button>
         <button class="reload-btn" onclick="abrirAuditoria()">&#128269; Auditoria</button>
-        <button class="reload-btn" onclick="showUploadScreen()">&#8635; Trocar planilha</button>
+        <button class="reload-btn" onclick="loadHostedExcel()" title="Baixar de novo a planilha atual do Dropbox">&#8635; Atualizar</button>
+        <button class="reload-btn" onclick="showUploadScreen()">&#128193; Trocar planilha</button>
       </div>
       <span class="file-name" id="file-name-disp">nenhum arquivo</span>
     </div>
@@ -4901,20 +4902,9 @@ async function loadLightData(){
   return {wb, rotulo};
 }
 
-async function loadHostedExcel(forcarPlanilha){
-  if(!forcarPlanilha){
-    document.getElementById("upload-screen").style.display = "none";
-    document.getElementById("dashboard").style.display = "none";
-    document.getElementById("loading-screen").style.display = "flex";
-    setProgress(1, "Carregando dados...");
-    try{
-      const {wb, rotulo} = await loadLightData();
-      load(null, wb, rotulo);
-      return;
-    }catch(err){
-      console.warn("Arquivo leve indisponível; lendo a planilha do Dropbox.", err);
-    }
-  }
+// Igual ao app de Análises: ao abrir, lê SEMPRE a planilha atual do Dropbox.
+// O arquivo leve (dados/painel.json.gz) só é usado se o Dropbox falhar.
+async function loadHostedExcel(){
   const status = document.getElementById("hosted-status");
   if(status) status.textContent = "Iniciando download da planilha no Dropbox...";
   document.getElementById("upload-screen").style.display = "none";
@@ -4929,12 +4919,23 @@ async function loadHostedExcel(forcarPlanilha){
       setProgress(24, "Dropbox concluído. Preparando leitura...");
       const blob = new Blob([arrayBuffer], {type:"application/vnd.ms-excel.sheet.macroEnabled.12"});
       const file = new File([blob], LOCAL_EXCEL_FILE_NAME, {type:blob.type});
-      load(file);
+      const agora = new Date().toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+      load(file, null, "Dropbox · lido " + agora);
       return;
     }catch(err){
       lastErr = err;
       console.warn("Falha ao carregar URL do Dropbox", err);
     }
+  }
+
+  // Dropbox falhou: usa a última cópia leve, deixando claro que pode estar desatualizada.
+  try{
+    setProgress(1, "Dropbox indisponível. Carregando última cópia...");
+    const {wb, rotulo} = await loadLightData();
+    load(null, wb, "⚠ Dropbox falhou · cópia " + rotulo.replace("atualizado ", ""));
+    return;
+  }catch(err){
+    console.warn("Arquivo leve também indisponível.", err);
   }
 
   _loadErr(new Error("Não foi possível carregar a planilha no Dropbox. Use o botão SELECIONAR ARQUIVO como fallback. Detalhe: " + (lastErr ? lastErr.message : "erro desconhecido")));
