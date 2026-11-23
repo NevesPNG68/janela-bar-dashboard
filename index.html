@@ -3827,6 +3827,7 @@ function renderDrinkVendasTicket(){
     <tbody>
       <tr><th>Mês</th>${ms.map(m=>`<td>${m.toLowerCase()}</td>`).join("")}</tr>
       <tr><th>Vendas</th>${vendas.map(v=>`<td>${fmtInt(v)}</td>`).join("")}</tr>
+      <tr><th>Faturamento</th>${ms.map(m=>`<td>${"R$ "+fmtInt(agg[m]?.liq||0)}</td>`).join("")}</tr>
       <tr class="row-ticket"><th>Tkt (x)</th>${tkt.map(v=>`<td>${fmtT(v)}</td>`).join("")}</tr>
     </tbody>
   </table>`;
