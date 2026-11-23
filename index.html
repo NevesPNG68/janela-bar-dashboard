@@ -1344,7 +1344,7 @@ html[data-tema="claro"] .section-title{color:#16161f!important}
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
         <button class="reload-btn tema-btn" id="tema-btn" onclick="alternarTema()" title="Mudar para tema escuro">&#9790;</button>
         <button class="reload-btn" onclick="abrirAuditoria()">&#128269; Auditoria</button>
-        <button class="reload-btn" onclick="loadHostedExcel()" title="Baixar de novo a planilha atual do Dropbox">&#8635; Atualizar</button>
+        <button class="reload-btn" onclick="atualizarAgora()" title="Buscar os dados mais recentes">&#8635; Atualizar</button>
         <button class="reload-btn" onclick="showUploadScreen()">&#128193; Trocar planilha</button>
       </div>
       <span class="file-name" id="file-name-disp">nenhum arquivo</span>
@@ -1641,9 +1641,12 @@ function cOpts(){
 
 // Upload manual/local: a base é carregada a partir do arquivo escolhido pelo usuário.
 
+let progressoAtual = 0;
 function setProgress(pct, step){
   const circumference = 2 * Math.PI * 70;
-  const p = Math.min(100, Math.max(0, pct));
+  if(pct <= 1) progressoAtual = 0;               // 1 = início de uma nova carga
+  progressoAtual = Math.max(progressoAtual, pct); // não volta para trás no meio da carga
+  const p = Math.min(100, Math.max(0, progressoAtual));
   const circle = document.getElementById("ld-circle");
   const num    = document.getElementById("ld-num");
   const bar    = document.getElementById("ld-bar");
@@ -1663,7 +1666,7 @@ function load(file, wbPronto, rotulo){
   document.getElementById("file-name-disp").textContent = rotulo || (file && file.name) || "";
   document.getElementById("upload-screen").style.display = "none";
   document.getElementById("loading-screen").style.display = "flex";
-  if(!wbPronto) setProgress(0, "Lendo arquivo...");
+  if(!wbPronto) setProgress(file && rotulo ? 24 : 2, "Lendo arquivo...");
 
   const iniciar = obterWb => {
     // Etapa 1: decode
@@ -1814,6 +1817,7 @@ function load(file, wbPronto, rotulo){
                   nextFrame(()=>{
                     applyFilters(()=>{
                       setProgress(100, "Pronto!");
+                      if(typeof aposCarga==="function"){ const f=aposCarga; aposCarga=null; setTimeout(f,0); }
                       nextFrame(()=>{
                         document.getElementById("loading-screen").style.display="none";
                       });
@@ -4883,13 +4887,31 @@ async function fetchArrayBufferWithProgress(url, opcoes){
 }
 
 // ── CARREGAMENTO RÁPIDO: ARQUIVO LEVE ──
+// Registro das tentativas, mostrado na tela se tudo falhar (para diagnosticar no celular).
+let tentativasCarga = [];
+function registrarTentativa(etapa, err){
+  const msg = etapa + ": " + (err && err.message ? err.message : String(err));
+  tentativasCarga.push(msg);
+  console.warn(msg, err);
+}
+
 async function loadLightData(){
-  if(typeof DecompressionStream==="undefined") throw new Error("navegador sem suporte a descompactação");
-  // "no-cache": usa a cópia guardada no aparelho se o arquivo não mudou no servidor.
-  const gz = await fetchArrayBufferWithProgress(LIGHT_DATA_URL, {cache:"no-cache", origem:"dados"});
-  setProgress(23, "Descompactando dados...");
-  const fluxo = new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"));
-  const pacote = JSON.parse(await new Response(fluxo).text());
+  // Cache com carimbo de hora: nunca reaproveita uma cópia velha guardada no aparelho.
+  const url = LIGHT_DATA_URL + "?v=" + Date.now();
+  const buf = await fetchArrayBufferWithProgress(url, {cache:"no-store", origem:"dados"});
+  const bytes = new Uint8Array(buf);
+  let texto;
+  // O GitHub Pages às vezes entrega o .gz já descompactado. Só descompacta se for gzip de fato.
+  if(bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b){
+    if(typeof DecompressionStream === "undefined") throw new Error("navegador sem suporte a descompactação");
+    setProgress(23, "Descompactando dados...");
+    const fluxo = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+    texto = await new Response(fluxo).text();
+  }else{
+    texto = new TextDecoder("utf-8").decode(bytes);
+  }
+  setProgress(25, "Lendo dados...");
+  const pacote = JSON.parse(texto);
   if(!pacote || !pacote.abas || !pacote.SheetNames) throw new Error("arquivo leve inválido");
   const wb = {SheetNames: pacote.SheetNames, Sheets: {}};
   for(const nome of pacote.SheetNames){
@@ -4903,61 +4925,100 @@ async function loadLightData(){
   return {wb, rotulo};
 }
 
-// PC: lê a planilha atual do Dropbox ao abrir (igual ao app de Análises).
-// Celular: a planilha (~57 MB) não cabe na memória do navegador, então usa o arquivo leve.
-// Se o Dropbox falhar no PC, também cai para o arquivo leve.
+// Todos (PC e celular) abrem primeiro a cópia rápida (~6 s em vez de ~1 min).
+// Depois de abrir, confere se ela já tem as vendas de ontem:
+//  - PC: se estiver atrasada, baixa sozinho a planilha atual do Dropbox.
+//  - Celular: a planilha (~57 MB) estoura a memória do navegador, então só avisa no cabeçalho.
 function usarArquivoLeve(){
   const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   return touch || (typeof isMobileView==="function" && isMobileView());
 }
+let aposCarga = null;
+function isoLocal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function ultimaDataVenda(){
+  let max = "";
+  for(const r of (allData||[])){ if(r.data && r.data > max) max = r.data; }
+  return max;
+}
+function verificarFrescor(celular, rotulo){
+  return ()=>{
+    const ultima = ultimaDataVenda();
+    const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+    const el = document.getElementById("file-name-disp");
+    const ddmm = ultima ? ultima.slice(8,10)+"/"+ultima.slice(5,7) : "?";
+    if(ultima && ultima >= isoLocal(ontem)){
+      if(el) el.textContent = rotulo + " · vendas até " + ddmm;
+      return;
+    }
+    if(celular){
+      if(el) el.textContent = "⚠ " + rotulo + " · vendas só até " + ddmm;
+    }else{
+      if(el) el.textContent = rotulo + " · vendas até " + ddmm + " · buscando planilha atual...";
+      loadHostedExcel(true);
+    }
+  };
+}
+function atualizarAgora(){ loadHostedExcel(!usarArquivoLeve()); }
+
+let cargaEmAndamento = false;
 async function loadHostedExcel(forcarPlanilha){
-  if(!forcarPlanilha && usarArquivoLeve()){
+  if(cargaEmAndamento) return;          // evita duas cargas ao mesmo tempo
+  cargaEmAndamento = true;
+  tentativasCarga = [];
+  try{
     document.getElementById("upload-screen").style.display = "none";
     document.getElementById("dashboard").style.display = "none";
     document.getElementById("loading-screen").style.display = "flex";
     setProgress(1, "Carregando dados...");
+
+    const celular = usarArquivoLeve();
+    if(!forcarPlanilha){
+      try{
+        const {wb, rotulo} = await loadLightData();
+        const r = "Cópia rápida · " + rotulo;
+        aposCarga = verificarFrescor(celular, r);
+        load(null, wb, r);
+        return;
+      }catch(err){
+        registrarTentativa("Cópia rápida", err);
+        if(celular){
+          _loadErr(new Error("não foi possível abrir a cópia rápida no celular.<br>" + tentativasCarga.join("<br>")));
+          return;
+        }
+      }
+    }
+
+    // PC (ou botão CARREGAR DO DROPBOX): planilha atual do Dropbox.
+    setProgress(1, "Conectando ao Dropbox...");
+    for(let i=0;i<HOSTED_EXCEL_URLS.length;i++){
+      const url = HOSTED_EXCEL_URLS[i];
+      if(i>0){ setProgress(1, "Link " + i + " do Dropbox falhou. Tentando link " + (i+1) + " de " + HOSTED_EXCEL_URLS.length + "..."); }
+      try{
+        const arrayBuffer = await fetchArrayBufferWithProgress(url, {origem: "Dropbox" + (i>0 ? " (link " + (i+1) + ")" : "")});
+        setProgress(24, "Dropbox concluído. Preparando leitura...");
+        const blob = new Blob([arrayBuffer], {type:"application/vnd.ms-excel.sheet.macroEnabled.12"});
+        const file = new File([blob], LOCAL_EXCEL_FILE_NAME, {type:blob.type});
+        const agora = new Date().toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+        load(file, null, "Dropbox · lido " + agora);
+        return;
+      }catch(err){
+        registrarTentativa("Dropbox (" + url.split("/")[2] + ")", err);
+      }
+    }
+
+    // Dropbox falhou: usa a última cópia leve, deixando claro que pode estar desatualizada.
     try{
+      setProgress(1, "Dropbox indisponível. Carregando última cópia...");
       const {wb, rotulo} = await loadLightData();
-      load(null, wb, "Cópia rápida · " + rotulo);
+      load(null, wb, "⚠ Dropbox falhou · cópia " + rotulo.replace("atualizado ", ""));
       return;
     }catch(err){
-      console.warn("Arquivo leve indisponível; tentando o Dropbox.", err);
+      registrarTentativa("Cópia rápida", err);
     }
+    _loadErr(new Error("não foi possível carregar os dados.<br>" + tentativasCarga.join("<br>")));
+  }finally{
+    cargaEmAndamento = false;
   }
-  const status = document.getElementById("hosted-status");
-  if(status) status.textContent = "Iniciando download da planilha no Dropbox...";
-  document.getElementById("upload-screen").style.display = "none";
-  document.getElementById("dashboard").style.display = "none";
-  document.getElementById("loading-screen").style.display = "flex";
-  setProgress(1, "Conectando ao Dropbox...");
-
-  let lastErr = null;
-  for(const url of HOSTED_EXCEL_URLS){
-    try{
-      const arrayBuffer = await fetchArrayBufferWithProgress(url);
-      setProgress(24, "Dropbox concluído. Preparando leitura...");
-      const blob = new Blob([arrayBuffer], {type:"application/vnd.ms-excel.sheet.macroEnabled.12"});
-      const file = new File([blob], LOCAL_EXCEL_FILE_NAME, {type:blob.type});
-      const agora = new Date().toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
-      load(file, null, "Dropbox · lido " + agora);
-      return;
-    }catch(err){
-      lastErr = err;
-      console.warn("Falha ao carregar URL do Dropbox", err);
-    }
-  }
-
-  // Dropbox falhou: usa a última cópia leve, deixando claro que pode estar desatualizada.
-  try{
-    setProgress(1, "Dropbox indisponível. Carregando última cópia...");
-    const {wb, rotulo} = await loadLightData();
-    load(null, wb, "⚠ Dropbox falhou · cópia " + rotulo.replace("atualizado ", ""));
-    return;
-  }catch(err){
-    console.warn("Arquivo leve também indisponível.", err);
-  }
-
-  _loadErr(new Error("Não foi possível carregar a planilha no Dropbox. Use o botão SELECIONAR ARQUIVO como fallback. Detalhe: " + (lastErr ? lastErr.message : "erro desconhecido")));
 }
 
 // ── CARREGAMENTO LOCAL DA PLANILHA ──
