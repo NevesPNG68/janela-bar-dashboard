@@ -1255,7 +1255,7 @@ html[data-tema="claro"] .section-title{color:#16161f!important}
     <p>A base será carregada pelo Dropbox automaticamente</p>
     <p>Use a seleção local apenas se o Dropbox falhar</p>
     <button class="upload-btn" onclick="document.getElementById('file-input').click()">SELECIONAR ARQUIVO</button>
-    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel()">CARREGAR DO DROPBOX</button>
+    <button class="upload-btn" style="background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:.5rem" onclick="loadHostedExcel(true)">CARREGAR DO DROPBOX</button>
     <p class="upload-hint" id="hosted-status">Teste Dropbox ou selecione/arraste a planilha local do computador.</p>
   </div>
   <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm">
@@ -4903,9 +4903,27 @@ async function loadLightData(){
   return {wb, rotulo};
 }
 
-// Igual ao app de Análises: ao abrir, lê SEMPRE a planilha atual do Dropbox.
-// O arquivo leve (dados/painel.json.gz) só é usado se o Dropbox falhar.
-async function loadHostedExcel(){
+// PC: lê a planilha atual do Dropbox ao abrir (igual ao app de Análises).
+// Celular: a planilha (~57 MB) não cabe na memória do navegador, então usa o arquivo leve.
+// Se o Dropbox falhar no PC, também cai para o arquivo leve.
+function usarArquivoLeve(){
+  const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  return touch || (typeof isMobileView==="function" && isMobileView());
+}
+async function loadHostedExcel(forcarPlanilha){
+  if(!forcarPlanilha && usarArquivoLeve()){
+    document.getElementById("upload-screen").style.display = "none";
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("loading-screen").style.display = "flex";
+    setProgress(1, "Carregando dados...");
+    try{
+      const {wb, rotulo} = await loadLightData();
+      load(null, wb, "Cópia rápida · " + rotulo);
+      return;
+    }catch(err){
+      console.warn("Arquivo leve indisponível; tentando o Dropbox.", err);
+    }
+  }
   const status = document.getElementById("hosted-status");
   if(status) status.textContent = "Iniciando download da planilha no Dropbox...";
   document.getElementById("upload-screen").style.display = "none";
