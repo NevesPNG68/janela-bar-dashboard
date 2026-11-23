@@ -4925,10 +4925,15 @@ async function loadLightData(){
   return {wb, rotulo};
 }
 
-// Todos (PC e celular) abrem primeiro a cópia rápida (~6 s em vez de ~1 min).
-// Depois de abrir, confere se ela já tem as vendas de ontem:
-//  - PC: se estiver atrasada, baixa sozinho a planilha atual do Dropbox.
-//  - Celular: a planilha (~57 MB) estoura a memória do navegador, então só avisa no cabeçalho.
+// Todos (PC e celular) abrem primeiro a cópia rápida (~1,7 MB, montada pelo GitHub).
+// Ao mesmo tempo, igual ao app de Análises, confere se a cópia é da planilha atual
+// baixando SÓ os últimos 64 KB do .xlsm no Dropbox (o índice do arquivo, que muda
+// sempre que a planilha é salva) e comparando com dados/indice.txt publicado junto da cópia.
+//  - Igual: pronto, nada mais a fazer.
+//  - Diferente no PC: monta sozinho a partir da planilha do Dropbox.
+//  - Diferente no celular: avisa (a planilha de ~57 MB estoura a memória do celular);
+//    a rotina do GitHub confere a cada 10 min e publica a cópia nova em seguida.
+//  - Se a conferência falhar: usa o critério antigo (a cópia tem as vendas de ontem?).
 function usarArquivoLeve(){
   const touch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   return touch || (typeof isMobileView==="function" && isMobileView());
@@ -4940,20 +4945,62 @@ function ultimaDataVenda(){
   for(const r of (allData||[])){ if(r.data && r.data > max) max = r.data; }
   return max;
 }
-function verificarFrescor(celular, rotulo){
-  return ()=>{
-    const ultima = ultimaDataVenda();
-    const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+function horaAgora(){ return new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}); }
+async function sha256Hex(buf){
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", buf));
+  return Array.from(d, b=>b.toString(16).padStart(2,"0")).join("");
+}
+// Impressão digital dos últimos 64 KB da planilha no Dropbox (null se não conseguir).
+async function indiceDropbox(){
+  for(const url of HOSTED_EXCEL_URLS){
+    try{
+      const r = await fetch(url, {cache:"no-store", redirect:"follow", headers:{Range:"bytes=-65536"}});
+      if(r.status !== 206 || !r.body || !r.body.getReader){ try{ r.body && r.body.cancel(); }catch(_){} continue; }
+      const rd = r.body.getReader(), partes = []; let got = 0, cortou = false;
+      for(;;){ const x = await rd.read(); if(x.done) break; partes.push(x.value); got += x.value.length;
+        if(got > 70000){ cortou = true; try{ await rd.cancel(); }catch(_){} break; } }
+      if(cortou) continue;
+      const u = new Uint8Array(got); let o = 0; for(const p of partes){ u.set(p,o); o += p.length; }
+      return await sha256Hex(u);
+    }catch(e){ console.warn("Conferência de 64 KB falhou neste link", e); }
+  }
+  return null;
+}
+async function indicePublicado(){
+  try{
+    const r = await fetch("dados/indice.txt?v=" + Date.now(), {cache:"no-store"});
+    if(!r.ok) return null;
+    const t = (await r.text()).trim();
+    return /^[0-9a-f]{64}$/.test(t) ? t : null;
+  }catch(e){ return null; }
+}
+// Dispara as duas conferências em paralelo com o carregamento da cópia.
+function iniciarConferencia(){
+  return Promise.all([indiceDropbox(), indicePublicado()]).catch(()=>[null,null]);
+}
+function verificarFrescor(celular, rotulo, conferencia){
+  return async ()=>{
     const el = document.getElementById("file-name-disp");
+    const ultima = ultimaDataVenda();
     const ddmm = ultima ? ultima.slice(8,10)+"/"+ultima.slice(5,7) : "?";
-    if(ultima && ultima >= isoLocal(ontem)){
-      if(el) el.textContent = rotulo + " · vendas até " + ddmm;
+    if(el) el.textContent = rotulo + " · vendas até " + ddmm + " · conferindo planilha...";
+    const [noDropbox, publicado] = await conferencia;
+    let atual;
+    if(noDropbox && publicado){
+      atual = (noDropbox === publicado);
+    }else{
+      // Sem como conferir: critério antigo.
+      const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+      atual = !!ultima && ultima >= isoLocal(ontem);
+    }
+    if(atual){
+      if(el) el.textContent = rotulo + " · vendas até " + ddmm + " · ✔ igual à planilha (" + horaAgora() + ")";
       return;
     }
     if(celular){
-      if(el) el.textContent = "⚠ " + rotulo + " · vendas só até " + ddmm;
+      if(el) el.textContent = "⚠ Planilha atualizada · cópia nova em alguns minutos · mostrando vendas até " + ddmm;
     }else{
-      if(el) el.textContent = rotulo + " · vendas até " + ddmm + " · buscando planilha atual...";
+      if(el) el.textContent = rotulo + " · planilha atualizada · montando dados novos...";
       loadHostedExcel(true);
     }
   };
@@ -4973,10 +5020,11 @@ async function loadHostedExcel(forcarPlanilha){
 
     const celular = usarArquivoLeve();
     if(!forcarPlanilha){
+      const conferencia = iniciarConferencia();
       try{
         const {wb, rotulo} = await loadLightData();
         const r = "Cópia rápida · " + rotulo;
-        aposCarga = verificarFrescor(celular, r);
+        aposCarga = verificarFrescor(celular, r, conferencia);
         load(null, wb, r);
         return;
       }catch(err){
