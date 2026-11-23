@@ -1187,6 +1187,14 @@
 </style>
 
 <script>/* tema claro é o padrão; o escuro fica salvo se o usuário escolher */(function(){var t="claro";try{t=localStorage.getItem("janela-tema")||"claro";}catch(e){}if(t!=="escuro")document.documentElement.setAttribute("data-tema","claro");})();</script>
+<style id="delivery-charts">
+  .dlv-resumo{display:flex;flex-wrap:wrap;gap:.4rem;margin:-.15rem 0 .55rem}
+  .dlv-chip{display:flex;flex-direction:column;gap:1px;padding:.32rem .6rem;border-radius:9px;
+    background:color-mix(in srgb,var(--chip) 12%,transparent);border:1px solid color-mix(in srgb,var(--chip) 38%,transparent)}
+  .dlv-chip span{font-size:.56rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800}
+  .dlv-chip b{font-size:.86rem;color:var(--chip);font-weight:900;font-variant-numeric:tabular-nums}
+  .dlv-origem{font-size:.6rem;color:var(--muted);margin-top:.35rem}
+</style>
 <style id="tema-claro">
 /* ── TEMA CLARO (o escuro continua sendo o padrão, sem alterações) ── */
 html[data-tema="claro"]{
@@ -1417,8 +1425,8 @@ html[data-tema="claro"] .section-title{color:#16161f!important}
     <div class="section-title">Comportamento <span class="tag">OPERACIONAL</span></div>
     <div class="chart-grid-3c" style="margin-bottom:1.5rem">
       <div class="chart-card"><h3>L&iacute;quido por Dia da Semana</h3><div class="chart-wrap"><canvas id="c-dia" height="240"></canvas></div></div>
-      <div class="chart-card"><h3>Hor&aacute;rio de Pico</h3><div class="chart-wrap"><canvas id="c-hora" height="240"></canvas></div></div>
-      <div class="chart-card"><h3>Evolu&ccedil;&atilde;o do Ticket M&eacute;dio</h3><div class="chart-wrap"><canvas id="c-tkt" height="240"></canvas></div></div>
+      <div class="chart-card"><h3>Vendas Delivery &mdash; iFood + 99Food</h3><div id="dlv-resumo" class="dlv-resumo"></div><div class="chart-wrap"><canvas id="c-hora" height="240"></canvas></div><div id="dlv-origem" class="dlv-origem"></div></div>
+      <div class="chart-card"><h3>Ticket M&eacute;dio &mdash; Delivery &times; Balc&atilde;o</h3><div id="tkt-resumo" class="dlv-resumo"></div><div class="chart-wrap"><canvas id="c-tkt" height="240"></canvas></div></div>
     </div>
 
     <div class="section-title">Quantidade de Vendas <span class="tag">VOLUME</span></div>
@@ -1698,6 +1706,7 @@ function load(file, wbPronto, rotulo){
               quinzena:  String(r[24]||"").trim(),
             })).filter(r=>r.liquido!==0);
 
+            dlvCampoCache = null; // reidentifica iFood/99Food a cada carga
             attractionData = parseAttractionSheet(wb);
 
             if(!allData.length){ _loadErr(new Error("Nenhum dado valido. Verifique a aba VendasOperador.")); return; }
@@ -3987,39 +3996,145 @@ function renderDia(){
   });
 }
 
+// ── DELIVERY (iFood + 99Food) ──
+// Identifica a plataforma pelo Canal; se o Canal não tiver iFood/99, tenta Pagamento e depois Grupo.
+const DLV_COR={ifood:"#ea1d2c",n99:"#ffb800",balcao:"#14b8a6"};
+let dlvCampoCache=null;
+function dlvCampo(){
+  if(dlvCampoCache) return dlvCampoCache;
+  const campos=["tipo","pgto","grupo"];
+  for(const c of campos){
+    const vals=new Set();
+    for(const d of allData){ const v=String(d[c]||""); if(/i\s*-?\s*food|99/i.test(v)) vals.add(v); if(vals.size>6) break; }
+    if(vals.size){ dlvCampoCache={campo:c,valores:[...vals]}; return dlvCampoCache; }
+  }
+  dlvCampoCache={campo:null,valores:[]}; return dlvCampoCache;
+}
+function dlvPlataforma(d){
+  const c=dlvCampo().campo; if(!c) return null;
+  const v=String(d[c]||"");
+  if(/i\s*-?\s*food/i.test(v)) return "ifood";
+  if(/99/.test(v)) return "n99";
+  return null;
+}
+// Agrupa por mês; com um único mês na seleção, agrupa por semana do mês.
+function dlvPeriodos(){
+  const meses=sortMes([...new Set(filteredData.map(d=>d.mes).filter(Boolean))]);
+  if(meses.length===1){
+    const sem=[...new Set(filteredData.map(d=>Math.round(d.semana)).filter(n=>n>0))].sort((a,b)=>a-b);
+    return {chave:d=>Math.round(d.semana), lista:sem, rotulos:sem.map(n=>n+"ª sem"), modo:"semana"};
+  }
+  return {chave:d=>d.mes, lista:meses, rotulos:meses, modo:"mes"};
+}
+function dlvGradiente(ctx,area,cor){
+  if(!area) return cor;
+  const g=ctx.createLinearGradient(0,area.bottom,0,area.top);
+  g.addColorStop(0,cor+"99"); g.addColorStop(1,cor);
+  return g;
+}
+function dlvChip(rotulo,valor,cor){
+  return `<div class="dlv-chip" style="--chip:${cor}"><span>${rotulo}</span><b>${valor}</b></div>`;
+}
+const dlvTemaClaro=()=>document.documentElement.getAttribute("data-tema")==="claro";
+
 function renderHora(){
   dc("hora");
-  const by={};
-  filteredData.forEach(d=>{const h=d.hora;by[h]=(by[h]||0)+d.liquido;});
-  const horas=Object.keys(by).sort();
-  const V=horas.map(h=>by[h]);
-  const o=cOpts();o.plugins.legend.display=false;
+  const P=dlvPeriodos();
+  const by={}; P.lista.forEach(k=>by[k]={ifood:0,n99:0,total:0,ped:0});
+  let totIf=0,tot99=0,totGeral=0,ped=0;
+  filteredData.forEach(d=>{
+    const k=P.chave(d); const liq=Number(d.liquido)||0;
+    totGeral+=liq;
+    if(!(k in by)) return;
+    by[k].total+=liq;
+    const pl=dlvPlataforma(d); if(!pl) return;
+    by[k][pl]+=liq;
+    if(pl==="ifood") totIf+=liq; else tot99+=liq;
+    if((Number(d.qtven)||0)>0){ by[k].ped+=Number(d.qtven); ped+=Number(d.qtven); }
+  });
+  const totDlv=totIf+tot99;
+  const share=P.lista.map(k=>by[k].total>0?(by[k].ifood+by[k].n99)/by[k].total*100:0);
+  const res=document.getElementById("dlv-resumo");
+  if(res) res.innerHTML=
+    dlvChip("Delivery",RK(totDlv),"#6366f1")+
+    dlvChip("iFood",RK(totIf),DLV_COR.ifood)+
+    dlvChip("99Food",RK(tot99),DLV_COR.n99)+
+    dlvChip("% da receita",(totGeral>0?totDlv/totGeral*100:0).toFixed(1)+"%","#0ea5e9")+
+    dlvChip("Pedidos",Math.round(ped).toLocaleString("pt-BR"),"#8b5cf6");
+  const org=document.getElementById("dlv-origem");
+  if(org){
+    const c=dlvCampo(), nomes={tipo:"Canal",pgto:"Pagamento",grupo:"Grupo"};
+    org.textContent=c.campo?`Identificado pelo campo ${nomes[c.campo]}: ${c.valores.join(", ")}`:"Nenhuma venda de iFood ou 99Food encontrada na planilha.";
+  }
+  const claro=dlvTemaClaro();
+  const o=cOpts();
+  o.interaction={mode:"index",intersect:false};
+  o.plugins.legend.position="top"; o.plugins.legend.align="end";
+  o.plugins.legend.labels.usePointStyle=true; o.plugins.legend.labels.pointStyle="rectRounded";
+  o.plugins.tooltip.callbacks={
+    label:c=>c.dataset.yAxisID==="y1"?` ${c.dataset.label}: ${Number(c.raw).toFixed(1)}%`:` ${c.dataset.label}: ${R(c.raw)}`,
+    footer:items=>{const i=items[0].dataIndex,k=P.lista[i];return `Total delivery: ${R(by[k].ifood+by[k].n99)}`;}
+  };
+  o.scales.x.stacked=true; o.scales.x.grid={display:false};
+  o.scales.y.stacked=true; o.scales.y.beginAtZero=true;
+  o.scales.y1={position:"right",beginAtZero:true,grid:{display:false},
+    ticks:{color:o.scales.y.ticks.color,font:o.scales.y.ticks.font,callback:v=>v.toFixed(0)+"%"}};
   charts["hora"]=new Chart(document.getElementById("c-hora").getContext("2d"),{
-    type:"line",data:{labels:horas.map(h=>h.split(" - ")[0]),
-    datasets:[{label:"L\u00edquido",data:V,borderColor:"#00e5ff",backgroundColor:"rgba(0,229,255,.18)",borderWidth:3,pointRadius:4,pointHoverRadius:7,tension:.4,fill:true}]},options:o
+    type:"bar",
+    data:{labels:P.rotulos,datasets:[
+      {type:"line",label:"% da receita",data:share,yAxisID:"y1",borderColor:"#6366f1",backgroundColor:"#6366f1",
+       borderWidth:2.5,borderDash:[5,4],pointRadius:3.5,pointBackgroundColor:claro?"#ffffff":"#111118",pointBorderWidth:2,tension:.35,order:0},
+      {label:"iFood",data:P.lista.map(k=>by[k].ifood),yAxisID:"y",stack:"d",order:1,
+       backgroundColor:c=>dlvGradiente(c.chart.ctx,c.chart.chartArea,DLV_COR.ifood),borderRadius:{topLeft:0,topRight:0,bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
+      {label:"99Food",data:P.lista.map(k=>by[k].n99),yAxisID:"y",stack:"d",order:1,
+       backgroundColor:c=>dlvGradiente(c.chart.ctx,c.chart.chartArea,DLV_COR.n99),borderRadius:{topLeft:6,topRight:6,bottomLeft:0,bottomRight:0},borderSkipped:false,maxBarThickness:46}
+    ]},
+    options:o
   });
 }
 
+// ── TICKET MÉDIO: DELIVERY × BALCÃO ──
 function renderTkt(){
   dc("tkt");
-  const by={};
+  const P=dlvPeriodos();
+  const by={}; P.lista.forEach(k=>by[k]={dl:0,dv:0,bl:0,bv:0});
+  let dl=0,dv=0,bl=0,bv=0;
   filteredData.forEach(d=>{
-    const m=d.mes; if(!m)return;
-    if(!by[m]) by[m]={liq:0,ven:0};
-    by[m].liq += Number(d.liquido)||0;
-    by[m].ven += Number(d.qtven)||0;
+    const k=P.chave(d); if(!(k in by)) return;
+    const liq=Number(d.liquido)||0, ven=Math.max(0,Number(d.qtven)||0);
+    if(dlvPlataforma(d)){ by[k].dl+=liq; by[k].dv+=ven; dl+=liq; dv+=ven; }
+    else { by[k].bl+=liq; by[k].bv+=ven; bl+=liq; bv+=ven; }
   });
-  const ms=sortMes(Object.keys(by));
-  const V=ms.map(m=>by[m].ven>0?by[m].liq/by[m].ven:0);
-  const o=cOpts();o.plugins.legend.display=false;
-  o.scales.y.ticks.callback=v=>"R$"+v.toFixed(0);
+  const tD=P.lista.map(k=>by[k].dv>0?by[k].dl/by[k].dv:null);
+  const tB=P.lista.map(k=>by[k].bv>0?by[k].bl/by[k].bv:null);
+  const fmt=v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const td=dv>0?dl/dv:0, tb=bv>0?bl/bv:0;
+  const res=document.getElementById("tkt-resumo");
+  if(res) res.innerHTML=
+    dlvChip("Delivery",dv>0?fmt(td):"—","#6366f1")+
+    dlvChip("Balcão",bv>0?fmt(tb):"—",DLV_COR.balcao)+
+    dlvChip("Diferença",(dv>0&&bv>0)?((td/tb-1)*100>=0?"+":"")+((td/tb-1)*100).toFixed(1)+"%":"—","#f59e0b");
+  const claro=dlvTemaClaro();
+  const o=cOpts();
+  o.interaction={mode:"index",intersect:false};
+  o.plugins.legend.position="top"; o.plugins.legend.align="end";
+  o.plugins.legend.labels.usePointStyle=true; o.plugins.legend.labels.pointStyle="circle";
+  o.plugins.tooltip.callbacks={label:c=>` ${c.dataset.label}: ${c.raw==null?"—":fmt(c.raw)}`};
+  o.scales.x.grid={display:false};
+  const vv=[...tD,...tB].filter(v=>v!=null&&v>0);
+  if(vv.length){ const mn=Math.min(...vv), mx=Math.max(...vv), folga=Math.max((mx-mn)*0.25, mx*0.05);
+    o.scales.y.suggestedMin=Math.max(0,mn-folga); o.scales.y.suggestedMax=mx+folga; }
+  o.scales.y.ticks.callback=v=>"R$ "+Math.round(v);
+  const area=(cor)=>c=>{const a=c.chart.chartArea; if(!a) return cor+"22";
+    const g=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom); g.addColorStop(0,cor+"40"); g.addColorStop(1,cor+"00"); return g;};
+  const ds=(label,data,cor)=>({label,data,borderColor:cor,backgroundColor:area(cor),fill:true,borderWidth:3,tension:.38,spanGaps:true,
+    pointRadius:4.5,pointHoverRadius:7,pointBackgroundColor:claro?"#ffffff":"#111118",pointBorderColor:cor,pointBorderWidth:2.5});
   charts["tkt"]=new Chart(document.getElementById("c-tkt").getContext("2d"),{
-    type:"line",data:{labels:ms,
-    datasets:[{label:"Ticket Médio",data:V,borderColor:"#00e5ff",backgroundColor:"rgba(0,229,255,.18)",borderWidth:3.5,pointRadius:5.5,pointHoverRadius:8,tension:.3,fill:true}]},options:o
+    type:"line",
+    data:{labels:P.rotulos,datasets:[ds("Delivery",tD,"#6366f1"),ds("Balcão",tB,DLV_COR.balcao)]},
+    options:o
   });
 }
-
-
 
 // VENDAS CHARTS
 function renderVendas(){
@@ -4262,6 +4377,16 @@ function momHtml(curr,prev,lowerBetter=false){
   return `<div class="mom ${cls}"><span>${arrow}</span>${sign}${delta.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>`;
 }
 
+// Variação em pontos percentuais (p.p.) — usada nos indicadores que já são percentuais.
+// Ex.: lucratividade de 2,3% para −12,8% = −15,1 p.p. (e não −661,7%).
+function momPPHtml(curr,prev,lowerBetter=false){
+  curr=Number(curr||0); prev=Number(prev||0);
+  if(!isFinite(curr)||!isFinite(prev)) return `<div class="mom neutral">—</div>`;
+  const d=curr-prev;
+  if(Math.abs(d)<0.05) return `<div class="mom neutral">→ 0,0 p.p.</div>`;
+  const up=d>0, good=lowerBetter?!up:up;
+  return `<div class="mom ${good?"good":"bad"}"><span>${up?"▲":"▼"}</span>${up?"+":""}${d.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</div>`;
+}
 function renderQuadroMesAMes(targetId,rows,metrics,note){
   const el=document.getElementById(targetId);
   if(!el)return;
@@ -4269,14 +4394,17 @@ function renderQuadroMesAMes(targetId,rows,metrics,note){
     el.innerHTML=`<div style="color:var(--muted);font-size:.82rem;padding:1rem;text-align:center">Sem dados para o período selecionado.</div>`;
     return;
   }
-  const labels=rows.map(r=>(r.mes||"").toUpperCase());
+  const parcial=r=>{ try{ return !!finMesParcial("",[r.mes]); }catch(e){ return false; } };
+  const labels=rows.map(r=>(r.mes||"").toUpperCase()+(parcial(r)?' <span style="font-size:.58rem;color:#c97800;letter-spacing:.04em">· PARCIAL</span>':""));
   const body=metrics.map(m=>{
     const vals=rows.map(r=>Number(m.value(r)||0));
-    const tds=vals.map((v,i)=>`
+    const tds=vals.map((v,i)=>{
+      const alerta=m.alerta?m.alerta(v):false;
+      return `
       <td>
-        <div class="cell-val">${m.fmt(v)}</div>
-        ${i===0?`<div class="mom neutral">base</div>`:momHtml(v,vals[i-1],!!m.lowerBetter)}
-      </td>`).join("");
+        <div class="cell-val"${alerta?' style="color:#e11d48"':''}>${m.fmt(v)}${alerta&&m.alertaTxt?` <span style="font-size:.6rem;font-weight:800;color:#e11d48">${m.alertaTxt}</span>`:""}</div>
+        ${i===0?`<div class="mom neutral">base</div>`:(m.pp?momPPHtml:momHtml)(v,vals[i-1],!!m.lowerBetter)}
+      </td>`;}).join("");
     return `<tr style="--metric-color:${m.color}">
       <td>
         <div class="metric-name"><span class="metric-dot"></span><span>${m.label}</span></div>
@@ -4312,16 +4440,16 @@ function renderKpiLinha(){
     liqPorMes[k]=(liqPorMes[k]||0)+(d.liquido||0);
   });
   const metrics=[
-    {label:"Lucratividade",tag:"% LL",color:"#00ffcc",lowerBetter:false,fmt:fmtPerc,value:r=>(r.pctLuc||0)*100},
-    {label:"CMV",tag:"% CMV",color:"#ff3c6e",lowerBetter:true,fmt:fmtPerc,value:r=>(r.pctCmv||0)*100},
-    {label:"Margem de Contribuição",tag:"Margem",color:"#7fff00",lowerBetter:false,fmt:fmtPerc,value:r=>(r.margem||0)*100},
-    {label:"Eficiência Operacional",tag:"Eficiência",color:"#a78bfa",lowerBetter:false,fmt:fmtMult,value:r=>{
+    {label:"Lucratividade",tag:"% LL",color:"#00ffcc",lowerBetter:false,pp:true,fmt:fmtPerc,alerta:v=>v<0,alertaTxt:"PREJUÍZO",value:r=>(r.pctLuc||0)*100},
+    {label:"CMV",tag:"% CMV",color:"#ff3c6e",lowerBetter:true,pp:true,fmt:fmtPerc,value:r=>(r.pctCmv||0)*100},
+    {label:"Margem de Contribuição",tag:"Margem",color:"#7fff00",lowerBetter:false,pp:true,fmt:fmtPerc,value:r=>(r.margem||0)*100},
+    {label:"Eficiência Operacional",tag:"Eficiência",color:"#a78bfa",lowerBetter:false,fmt:fmtMult,alerta:v=>v>0&&v<1,value:r=>{
       const mesLiq=liqPorMes[(r.mes||"").toLowerCase()]||0;
       return r.custoGeral>0 ? mesLiq/r.custoGeral : 0;
     }},
     {label:"Markup",tag:"MKP",color:"#f5a623",lowerBetter:false,fmt:fmtMult,value:r=>r.mkp||0}
   ];
-  renderQuadroMesAMes("quadro-kpi",rows,metrics,"Nos indicadores, verde indica melhora contra o mês anterior. No CMV, queda é tratada como melhora.");
+  renderQuadroMesAMes("quadro-kpi",rows,metrics,"Verde indica melhora contra o mês anterior (no CMV, queda é melhora). Indicadores em % variam em pontos percentuais (p.p.). Valores em vermelho: prejuízo ou eficiência abaixo de ×1,00.");
 }
 
 function renderTable(){
